@@ -142,34 +142,24 @@
         carbs: +(foodInfo.carbs * factor).toFixed(1),
         fat: +(foodInfo.fat * factor).toFixed(1),
         fiber: +(foodInfo.fiber * factor).toFixed(1),
-        time: new Date().toLocaleTimeString()
+        time: new Date().toISOString()  // better as ISO for querying
       };
 
-      // ✅ Send to Google Sheets backend (CORS-safe)
-      const formData = new URLSearchParams();
-      Object.keys(foodEntry).forEach(key => formData.append(key, foodEntry[key]));
-
-      fetch("https://script.google.com/macros/s/AKfycbxhsk3nvRPjMvJI9NkQGYQlPKLibEwpiSSGhi2gt3TTK6cLko3GFkfopfbJF598db2z/exec", {
-        method: "POST",
-        body: formData
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.result === "success") {
-          document.getElementById("status").textContent = `✅ Added: ${name} (${weight}g at ${foodEntry.time})`;
+      // ✅ Save to Firestore instead of Google Sheets
+      db.collection("foodLogs")
+        .add(foodEntry)
+        .then(() => {
+          document.getElementById("status").textContent = `✅ Added: ${name} (${weight}g at ${new Date().toLocaleTimeString()})`;
           foods.push(foodEntry);
           renderFoodTable();
           updateMacroSummary();
           document.getElementById("foodName").value = "";
           document.getElementById("foodWeight").value = "";
-        } else {
-          alert("Failed to save food entry.");
-        }
-      })
-      .catch(err => {
-        alert("Error connecting to backend.");
-        console.error(err);
-      });
+        })
+        .catch((error) => {
+          alert("Error saving to Firebase.");
+          console.error("Firebase Error:", error);
+        });
     }
 
   function renderFoodTable() {
