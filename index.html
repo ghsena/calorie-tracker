@@ -73,7 +73,26 @@
     <div class="summary" id="macroSummary"></div>
   </div>
 
+    <!-- ✅ Firebase SDKs (must come before your script that uses Firebase) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+
+    <!-- ✅ Your main script that includes firebaseConfig and logic -->
+
   <script>
+      const firebaseConfig = {
+      apiKey: "AIzaSyCDVZOggFk6Y4hCSU7prDjEnONqRLD2jcc",
+      authDomain: "calorie-tracker-cf272.firebaseapp.com",
+      projectId: "calorie-tracker-cf272",
+      storageBucket: "calorie-tracker-cf272.firebasestorage.app",
+      messagingSenderId: "650970455289",
+      appId: "1:650970455289:web:ed766275c675a0a1111628",
+      measurementId: "G-5LHNSXQFDM"
+      };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
     const foodDB = {
       "brown rice cooked": { calories: 111, protein: 2.6, carbs: 23, fat: 0.9, fiber: 1.8 },
       "white rice cooked": { calories: 130, protein: 2.4, carbs: 28, fat: 0.3, fiber: 0.4 },
