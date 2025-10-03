@@ -130,6 +130,7 @@
     firebase.auth().onAuthStateChanged((user) => {
       if (user) {
         console.log("✅ User is signed in:", user.uid);
+        console.log("Submitting food entry:", foodEntry);
         document.querySelector(".main").style.display = "block";
         document.querySelector(".sidebar").style.display = "block";
         document.getElementById("userInfo").classList.remove("hidden");
