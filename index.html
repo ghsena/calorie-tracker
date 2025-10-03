@@ -34,26 +34,26 @@
   <div class="main">
     <h2>Nutrition Setup</h2>
     <label for="bmrInput">Enter Your BMR:</label>
-    <input type="number" id="bmrInput" placeholder="e.g. 1800" value="1700" />
+    <input type="number" id="bmrInput" name="bmr" placeholder="e.g. 1800" value="1700" />
     <label for="goalSelect">Goal:</label>
     <select id="goalSelect">
       <option value="bulk">Bulk (Gain Weight)</option>
       <option value="cut">Cut (Lose Weight)</option>
     </select>
     <label for="weightGoal">Weight Goal (kg):</label>
-    <input type="number" id="weightGoal" value="75" />
+    <input type="number" id="weightGoal" name="weightGoal" value="75" />
     <label for="currentWeight">Current Weight (kg):</label>
-    <input type="number" id="currentWeight" value="72" />
+    <input type="number" id="currentWeight" name="currentWeight" value="72" />
     <button onclick="calculateNeeds()">Calculate Needs</button>
 
     <div class="summary" id="needsSummary"></div>
 
     <h2>Log Food (Auto Nutrition)</h2>
     <label for="foodName">Food Name:</label>
-    <input type="text" id="foodName" list="foodOptions" placeholder="e.g. apple" />
+    <input type="text" id="foodName" name="foodName" list="foodOptions" placeholder="e.g. apple" />
     <datalist id="foodOptions"></datalist>
     <label for="foodWeight">Weight (g):</label>
-    <input type="number" id="foodWeight" placeholder="e.g. 100" />
+    <input type="number" id="foodWeight" name="foodWeight" placeholder="e.g. 100" />
     <button onclick="addFood()">Add Food</button>
     <button onclick="toggleFoodList()">List Added Foods</button>
     <div id="status" style="color: green; margin-top: 10px;"></div>
@@ -76,6 +76,7 @@
   <!-- ✅ Correct Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 
   <script>
     const firebaseConfig = {
@@ -161,21 +162,18 @@
     }
 
     function loadFoodFromFirestore() {
-      db.collection("foodLogs")
-        .orderBy("time", "desc")
-        .limit(20)
-        .get()
-        .then((querySnapshot) => {
-          foods = [];
-          querySnapshot.forEach((doc) => {
-            foods.push(doc.data());
+      firebase.auth().onAuthStateChanged(function(user) {
+      if (user) {
+        console.log("✅ User signed in:", user.uid);
+        loadFoodFromFirestore(); // Now it's safe to access Firestore
+      } else {
+        // Try anonymous sign-in
+        firebase.auth().signInAnonymously()
+          .catch((error) => {
+            console.error("Auth error:", error);
           });
-          renderFoodTable();
-          updateMacroSummary();
-        })
-        .catch((error) => {
-          console.error("Error loading food logs:", error);
-        });
+      }
+    });
     }
 
     function addFood() {
