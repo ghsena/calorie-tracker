@@ -4,85 +4,63 @@
   <meta charset="UTF-8" />
   <title>Calorie & Macro Tracker (Auto DB)</title>
   <style>
-    .hidden {
-      display: none;
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 1000px;
+      margin: auto;
+      display: flex;
+      flex-direction: row;
+      gap: 40px;
     }
-
-    .main input,
-    .main button {
-      margin: 5px;
+    .main, .sidebar { flex: 1; }
+    label, input, select, button { display: block; margin-bottom: 10px; }
+    h2, h3 { margin-top: 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
     }
-
-    .daily-needs {
-      margin: 20px 0;
-      padding: 10px;
+    th, td {
       border: 1px solid #ccc;
-      background: #f9f9f9;
+      padding: 6px;
+      text-align: left;
     }
-
-    .daily-needs label {
-      display: block;
-      margin-bottom: 6px;
-    }
+    .summary { margin-top: 20px; }
+    .hidden { display: none; }
   </style>
-
 </head>
 <body>
-  <div id="authSection">
-    <div id="userInfo" class="hidden">
-      Logged in as: <span id="userEmail"></span>
-      <button onclick="signOut()">Sign Out</button>
-    </div>
-    <div id="authForm">
-      <input type="email" id="email" placeholder="Email" />
-      <input type="password" id="password" placeholder="Password" />
-      <button onclick="signIn()">Sign In</button>
-      <button onclick="signUp()">Sign Up</button>
-    </div>
-  </div>
-  <div class="daily-needs">
-  <h3>Enter Your Details</h3>
-  <label>Weight (kg): <input type="number" id="userWeight" /></label>
-  <label>Height (cm): <input type="number" id="userHeight" /></label>
-  <label>Age: <input type="number" id="userAge" /></label>
-  <label>Gender:
-    <select id="userGender">
-      <option value="male">Male</option>
-      <option value="female">Female</option>
-    </select>
-  </label>
-  <label>Activity Level:
-    <select id="userActivity">
-      <option value="1.2">Sedentary</option>
-      <option value="1.375">Light</option>
-      <option value="1.55">Moderate</option>
-      <option value="1.725">Active</option>
-      <option value="1.9">Very Active</option>
-    </select>
-  </label>
-  <button onclick="calculateBMR()">Auto-Calculate Goals</button>
-</div>
   <div class="main">
-  <h3>Add Food</h3>
-  <input list="foodOptions" id="foodName" placeholder="Enter food name" />
-  <datalist id="foodOptions"></datalist>
-  <input type="number" id="foodWeight" placeholder="Weight (g)" />
-  <button onclick="addFood()">Add Food</button>
-  <p id="status"></p>
-</div>
+    <h2>Nutrition Setup</h2>
+    <label for="bmrInput">Enter Your BMR:</label>
+    <input type="number" id="bmrInput" placeholder="e.g. 1800" value="1700" />
+    <label for="goalSelect">Goal:</label>
+    <select id="goalSelect">
+      <option value="bulk">Bulk (Gain Weight)</option>
+      <option value="cut">Cut (Lose Weight)</option>
+    </select>
+    <label for="weightGoal">Weight Goal (kg):</label>
+    <input type="number" id="weightGoal" value="75" />
+    <label for="currentWeight">Current Weight (kg):</label>
+    <input type="number" id="currentWeight" value="72" />
+    <button onclick="calculateNeeds()">Calculate Needs</button>
 
-  <!-- ✅ STEP 1: Daily Needs Input UI -->
-  <div class="daily-needs">
-    <h3>Set Daily Nutritional Goals</h3>
-    <label>Calories: <input type="number" id="dailyCalories" /></label>
-    <label>Protein (g): <input type="number" id="dailyProtein" /></label>
-    <label>Carbs (g): <input type="number" id="dailyCarbs" /></label>
-    <label>Fat (g): <input type="number" id="dailyFat" /></label>
-    <label>Fiber (g): <input type="number" id="dailyFiber" /></label>
-    <button onclick="calculateNeeds()">Set Goals</button>
+    <div class="summary" id="needsSummary"></div>
+
+    <h2>Log Food (Auto Nutrition)</h2>
+    <label for="foodName">Food Name:</label>
+    <input type="text" id="foodName" list="foodOptions" placeholder="e.g. apple" />
+    <datalist id="foodOptions"></datalist>
+    <label for="foodWeight">Weight (g):</label>
+    <input type="number" id="foodWeight" placeholder="e.g. 100" />
+    <button onclick="addFood()">Add Food</button>
+    <button onclick="toggleFoodList()">List Added Foods</button>
+    <div id="status" style="color: green; margin-top: 10px;"></div>
   </div>
 
   <div class="sidebar">
+    <h3>Daily Log</h3>
     <table id="foodTable" class="hidden">
       <thead>
         <tr>
@@ -92,16 +70,16 @@
       </thead>
       <tbody></tbody>
     </table>
-    <div id="macroSummary" class="summary"></div>
+    <div class="summary" id="macroSummary"></div>
   </div>
 
-  <!-- Firebase + Your App Scripts -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <!-- ✅ Firebase SDKs (must come before your script that uses Firebase) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <!-- ✅ Your main script that includes firebaseConfig and logic -->
 
   <script>
-    const firebaseConfig = {
+      const firebaseConfig = {
       apiKey: "AIzaSyCDVZOggFk6Y4hCSU7prDjEnONqRLD2jcc",
       authDomain: "calorie-tracker-cf272.firebaseapp.com",
       projectId: "calorie-tracker-cf272",
@@ -109,170 +87,71 @@
       messagingSenderId: "650970455289",
       appId: "1:650970455289:web:ed766275c675a0a1111628",
       measurementId: "G-5LHNSXQFDM"
-    };
+      };
+
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
     const foodDB = {
       "brown rice cooked": { calories: 111, protein: 2.6, carbs: 23, fat: 0.9, fiber: 1.8 },
-      // Add more foods here
+      "white rice cooked": { calories: 130, protein: 2.4, carbs: 28, fat: 0.3, fiber: 0.4 },
+      "egg white": { calories: 52, protein: 11, carbs: 0.7, fat: 0.2, fiber: 0 },
+      "egg": { calories: 155, protein: 13, carbs: 1.1, fat: 11, fiber: 0 },
+      "egg yalk": { calories: 322, protein: 16, carbs: 3.6, fat: 27, fiber: 0 },
+      "carrot": { calories: 41, protein: 0.9, carbs: 10, fat: 0.2, fiber: 2.8 },
+      "beans": { calories: 31, protein: 1.8, carbs: 7, fat: 0.1, fiber: 3.4 },
+      "cauliflower": { calories: 25, protein: 1.9, carbs: 5, fat: 0.3, fiber: 2 },
+      "cabbage": { calories: 25, protein: 1.3, carbs: 6, fat: 0.1, fiber: 2.5 },
+      "brinjal": { calories: 25, protein: 1, carbs: 6, fat: 0.2, fiber: 3 },
+      "beetroot": { calories: 43, protein: 1.6, carbs: 10, fat: 0.2, fiber: 2.8 },
+      "spinach": { calories: 23, protein: 2.9, carbs: 3.6, fat: 0.4, fiber: 2.2 },
+      "gooseberry": { calories: 44, protein: 1, carbs: 10, fat: 0.6, fiber: 4.3 },
+      "banana": { calories: 89, protein: 1.1, carbs: 23, fat: 0.3, fiber: 2.6 },
+      "almond": { calories: 579, protein: 21, carbs: 22, fat: 50, fiber: 12.5 },
+      "coconut oil": { calories: 862, protein: 0, carbs: 0, fat: 100, fiber: 0 },
+      "ghee": { calories: 900, protein: 0, carbs: 0, fat: 100, fiber: 0 },
+      "whey protein": { calories: 400, protein: 80, carbs: 10, fat: 5, fiber: 0 },
+      "chicken breast": { calories: 165, protein: 31, carbs: 0, fat: 3.6, fiber: 0 },
+      "chicken thigh": { calories: 209, protein: 26, carbs: 0, fat: 10.9, fiber: 0 },
+      "guava": { calories: 68, protein: 2.6, carbs: 14, fat: 1, fiber: 5.4 },
+      "pineapple": { calories: 50, protein: 0.5, carbs: 13, fat: 0.1, fiber: 1.4 }
     };
 
     let foods = [];
     let dailyNeeds = { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
 
-    function signIn() {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-        .then(() => firebase.auth().signInWithEmailAndPassword(email, password))
-        .catch(error => alert("Sign-in failed: " + error.message));
-    }
-
-    function signUp() {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-        .then(() => firebase.auth().createUserWithEmailAndPassword(email, password))
-        .then((userCredential) => {
-          const user = userCredential.user;
-          user.sendEmailVerification()
-            .then(() => alert("Verification email sent. Please check your inbox."));
-        })
-        .catch(error => alert("Sign-up failed: " + error.message));
-    }
-
-    function signOut() {
-      firebase.auth().signOut()
-        .then(() => console.log("✅ Signed out"))
-        .catch(error => alert("Sign-out error: " + error.message));
-    }
-
-    firebase.auth().onAuthStateChanged((user) => {
-      if (user) {
-        console.log("✅ User is signed in:", user.uid);
-        console.log("Submitting food entry:", foodEntry);
-        document.querySelector(".main").style.display = "block";
-        document.querySelector(".sidebar").style.display = "block";
-        document.getElementById("userInfo").classList.remove("hidden");
-        document.getElementById("authForm").classList.add("hidden");
-        document.getElementById("userEmail").textContent = user.email || "Anonymous";
-        loadFoodFromFirestore();
-
-        // ✅ Auto-set some default values on login (optional)
-        dailyNeeds = { calories: 2000, protein: 150, carbs: 250, fat: 70, fiber: 30 };
-        updateMacroSummary();
-      } else {
-        console.log("⚠️ No user signed in.");
-        document.getElementById("userInfo").classList.add("hidden");
-        document.getElementById("authForm").classList.remove("hidden");
-      }
-    });
-
-    function calculateNeeds() {
-      const c = parseFloat(document.getElementById("dailyCalories").value);
-      const p = parseFloat(document.getElementById("dailyProtein").value);
-      const carbs = parseFloat(document.getElementById("dailyCarbs").value);
-      const f = parseFloat(document.getElementById("dailyFat").value);
-      const fiber = parseFloat(document.getElementById("dailyFiber").value);
-
-      if ([c, p, carbs, f, fiber].some(v => isNaN(v) || v < 0)) {
-        alert("Please enter valid numbers for all fields.");
-        return;
-      }
-
-      dailyNeeds = {
-        calories: c,
-        protein: p,
-        carbs: carbs,
-        fat: f,
-        fiber: fiber
-      };
-
-      updateMacroSummary();
-    }
-
-    function calculateBMR() {
-      const weight = parseFloat(document.getElementById("userWeight").value);
-      const height = parseFloat(document.getElementById("userHeight").value);
-      const age = parseFloat(document.getElementById("userAge").value);
-      const gender = document.getElementById("userGender").value;
-      const activity = parseFloat(document.getElementById("userActivity").value);
-
-      if ([weight, height, age].some(isNaN)) {
-        alert("Please fill in all fields.");
-        return;
-      }
-
-      // Mifflin-St Jeor Equation
-      let bmr;
-      if (gender === "male") {
-        bmr = 10 * weight + 6.25 * height - 5 * age + 5;
-      } else {
-        bmr = 10 * weight + 6.25 * height - 5 * age - 161;
-      }
-
-      const tdee = bmr * activity;
-
-      // Basic macro breakdown (for fitness goals, you can adjust)
-      const protein = weight * 2; // 2g per kg of body weight
-      const fat = weight * 1;     // 1g per kg
-      const fatCalories = fat * 9;
-      const proteinCalories = protein * 4;
-      const remainingCalories = tdee - (fatCalories + proteinCalories);
-      const carbs = remainingCalories / 4;
-      const fiber = 30; // a healthy fixed target
-
-      // Fill in the goal inputs
-      document.getElementById("dailyCalories").value = Math.round(tdee);
-      document.getElementById("dailyProtein").value = Math.round(protein);
-      document.getElementById("dailyCarbs").value = Math.round(carbs);
-      document.getElementById("dailyFat").value = Math.round(fat);
-      document.getElementById("dailyFiber").value = fiber;
-
-      // Update global dailyNeeds object
-      dailyNeeds = {
-        calories: Math.round(tdee),
-        protein: Math.round(protein),
-        carbs: Math.round(carbs),
-        fat: Math.round(fat),
-        fiber: fiber
-      };
-
-      updateMacroSummary();
-    }
-
     function loadFoodFromFirestore() {
-      const user = firebase.auth().currentUser;
-      if (!user) return;
       db.collection("foodLogs")
-        .where("userId", "==", user.uid)
         .orderBy("time", "desc")
+        .limit(20)
         .get()
-        .then(snapshot => {
+        .then((querySnapshot) => {
           foods = [];
-          snapshot.forEach(doc => {
-            const obj = doc.data();
-            obj.id = doc.id;
-            foods.push(obj);
+          querySnapshot.forEach((doc) => {
+            foods.push(doc.data());
           });
           renderFoodTable();
           updateMacroSummary();
         })
-        .catch(error => console.error("Error loading food logs:", error));
+        .catch((error) => {
+          console.error("Error loading food logs:", error);
+        });
     }
 
     function addFood() {
-      const user = firebase.auth().currentUser;
-      if (!user) return alert("You must be signed in.");
       const name = document.getElementById("foodName").value.trim().toLowerCase();
       const weight = parseFloat(document.getElementById("foodWeight").value);
-      if (!name || isNaN(weight) || weight <= 0) return alert("Please enter valid food & weight.");
+      if (!name || isNaN(weight) || weight <= 0) {
+        alert("Please enter a valid food name and a weight greater than 0.");
+        return;
+      }
       const foodInfo = foodDB[name];
-      if (!foodInfo) return alert("Food not found.");
+      if (!foodInfo) {
+        alert("Food not found in database.");
+        return;
+      }
       const factor = weight / 100;
       const foodEntry = {
-        userId: user.uid,
         name,
         weight,
         calories: +(foodInfo.calories * factor).toFixed(1),
@@ -280,127 +159,138 @@
         carbs: +(foodInfo.carbs * factor).toFixed(1),
         fat: +(foodInfo.fat * factor).toFixed(1),
         fiber: +(foodInfo.fiber * factor).toFixed(1),
-        time: new Date().toISOString()
+        time: new Date().toISOString()  // better as ISO for querying
       };
-      db.collection("foodLogs").add(foodEntry)
+
+      // ✅ Save to Firestore instead of Google Sheets
+      db.collection("foodLogs")
+        .add(foodEntry)
         .then(() => {
-          foods.unshift(foodEntry);
+          document.getElementById("status").textContent = `✅ Added: ${name} (${weight}g at ${new Date().toLocaleTimeString()})`;
+          foods.push(foodEntry);
           renderFoodTable();
           updateMacroSummary();
+          document.getElementById("foodName").value = "";
+          document.getElementById("foodWeight").value = "";
         })
-        .catch(error => alert("Error saving: " + error.message));
+        .catch((error) => {
+          alert("Error saving to Firebase.");
+          console.error("Firebase Error:", error);
+        });
     }
 
-    function renderFoodTable() {
-      const tbody = document.querySelector("#foodTable tbody");
-      tbody.innerHTML = "";
-      foods.forEach((food, index) => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${new Date(food.time).toLocaleTimeString()}</td>
-          <td>${food.name}</td>
-          <td><input type="number" value="${food.weight}" onchange="editFood(${index}, this.value)" /></td>
-          <td>${food.calories}</td>
-          <td>${food.protein}</td>
-          <td>${food.carbs}</td>
-          <td>${food.fat}</td>
-          <td>${food.fiber}</td>
-          <td><button onclick="deleteFood(${index})">❌</button></td>
-        `;
-        tbody.appendChild(row);
-      });
-      document.getElementById("foodTable").classList.remove("hidden");
-    }
+  function renderFoodTable() {
+    const tbody = document.querySelector("#foodTable tbody");
+    tbody.innerHTML = "";
 
-    function editFood(index, newWeight) {
-      newWeight = parseFloat(newWeight);
-      if (isNaN(newWeight) || newWeight <= 0) {
-        alert("Weight must be positive.");
-        renderFoodTable();
-        return;
-      }
-      const food = foods[index];
-      const base = foodDB[food.name];
-      const factor = newWeight / 100;
-      const newObj = {
-        ...food,
-        weight: newWeight,
-        calories: +(base.calories * factor).toFixed(1),
-        protein: +(base.protein * factor).toFixed(1),
-        carbs: +(base.carbs * factor).toFixed(1),
-        fat: +(base.fat * factor).toFixed(1),
-        fiber: +(base.fiber * factor).toFixed(1)
-      };
-      if (food.id) {
-        db.collection("foodLogs").doc(food.id).update(newObj)
-          .then(() => {
-            foods[index] = newObj;
-            renderFoodTable();
-            updateMacroSummary();
-          })
-          .catch(error => alert("Error updating: " + error.message));
-      }
-    }
-
-    function deleteFood(index) {
-      const food = foods[index];
-      if (!food.id) return alert("Cannot delete: no id.");
-      db.collection("foodLogs").doc(food.id).delete()
-        .then(() => {
-          foods.splice(index, 1);
-          renderFoodTable();
-          updateMacroSummary();
-        })
-        .catch(error => alert("Delete error: " + error.message));
-    }
-
-    function updateMacroSummary() {
-      const totals = { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
-      for (const food of foods) {
-        totals.calories += food.calories;
-        totals.protein += food.protein;
-        totals.carbs += food.carbs;
-        totals.fat += food.fat;
-        totals.fiber += food.fiber;
-      }
-      const remaining = {
-        calories: Math.max(0, dailyNeeds.calories - totals.calories).toFixed(1),
-        protein: Math.max(0, dailyNeeds.protein - totals.protein).toFixed(1),
-        carbs: Math.max(0, dailyNeeds.carbs - totals.carbs).toFixed(1),
-        fat: Math.max(0, dailyNeeds.fat - totals.fat).toFixed(1),
-        fiber: Math.max(0, dailyNeeds.fiber - totals.fiber).toFixed(1)
-      };
-      document.getElementById("macroSummary").innerHTML = `
-        <strong>Today So Far:</strong><br/>
-        Calories: ${totals.calories.toFixed(1)} / ${dailyNeeds.calories} kcal<br/>
-        Protein: ${totals.protein.toFixed(1)}g / ${dailyNeeds.protein}g<br/>
-        Carbs: ${totals.carbs.toFixed(1)}g / ${dailyNeeds.carbs}g<br/>
-        Fat: ${totals.fat.toFixed(1)}g / ${dailyNeeds.fat}g<br/>
-        Fiber: ${totals.fiber.toFixed(1)}g / ${dailyNeeds.fiber}g<br/><br/>
-        <strong>Remaining:</strong><br/>
-        Calories: ${remaining.calories} kcal<br/>
-        Protein: ${remaining.protein}g<br/>
-        Carbs: ${remaining.carbs}g<br/>
-        Fat: ${remaining.fat}g<br/>
-        Fiber: ${remaining.fiber}g
+    foods.forEach((food, index) => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${new Date(food.time).toLocaleTimeString()}</td>
+        <td>${food.name}</td>
+        <td><input type="number" value="${food.weight}" onchange="editFood(${index}, this.value)" /></td>
+        <td>${food.calories}</td>
+        <td>${food.protein}</td>
+        <td>${food.carbs}</td>
+        <td>${food.fat}</td>
+        <td>${food.fiber}</td>
+        <td><button onclick="deleteFood(${index})">❌</button></td>
       `;
+      tbody.appendChild(row);
+    });
+  }
+
+  function toggleFoodList() {
+    const table = document.getElementById("foodTable");
+    table.classList.toggle("hidden");
+  }
+
+  function editFood(index, newWeight) {
+  newWeight = parseFloat(newWeight);
+  if (isNaN(newWeight) || newWeight <= 0) {
+    alert("Weight must be greater than 0.");
+    renderFoodTable(); // Reset input to previous valid value
+    return;
+  }
+
+  const food = foods[index];
+  const base = foodDB[food.name];
+  const factor = newWeight / 100;
+
+  foods[index] = {
+    name: food.name,
+    weight: newWeight,
+    calories: +(base.calories * factor).toFixed(1),
+    protein: +(base.protein * factor).toFixed(1),
+    carbs: +(base.carbs * factor).toFixed(1),
+    fat: +(base.fat * factor).toFixed(1),
+    fiber: +(base.fiber * factor).toFixed(1),
+    time: new Date().toLocaleTimeString() // Update time on edit
+  };
+
+  renderFoodTable();
+  updateMacroSummary();
+}
+
+  function deleteFood(index) {
+    foods.splice(index, 1);
+    renderFoodTable();
+    updateMacroSummary();
+  }
+
+  function updateMacroSummary() {
+    const totals = {
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+      fiber: 0
+    };
+
+    for (const food of foods) {
+      totals.calories += food.calories;
+      totals.protein += food.protein;
+      totals.carbs += food.carbs;
+      totals.fat += food.fat;
+      totals.fiber += food.fiber;
     }
 
-    function toggleFoodList() {
-      document.getElementById("foodTable").classList.toggle("hidden");
-    }
+    const remaining = {
+      calories: (Math.max(0, dailyNeeds.calories - totals.calories)).toFixed(1),
+      protein: (Math.max(0, dailyNeeds.protein - totals.protein)).toFixed(1),
+      carbs: (Math.max(0, dailyNeeds.carbs - totals.carbs)).toFixed(1),
+      fat: (Math.max(0, dailyNeeds.fat - totals.fat)).toFixed(1),
+      fiber: (Math.max(0, dailyNeeds.fiber - totals.fiber)).toFixed(1)
+    };
 
-    function populateFoodOptions() {
+    document.getElementById("macroSummary").innerHTML = `
+      <strong>Today So Far:</strong><br/>
+      Calories: ${totals.calories.toFixed(1)} / ${dailyNeeds.calories} kcal<br/>
+      Protein: ${totals.protein.toFixed(1)}g / ${dailyNeeds.protein}g<br/>
+      Carbs: ${totals.carbs.toFixed(1)}g / ${dailyNeeds.carbs}g<br/>
+      Fat: ${totals.fat.toFixed(1)}g / ${dailyNeeds.fat}g<br/>
+      Fiber: ${totals.fiber.toFixed(1)}g / ${dailyNeeds.fiber}g<br/>
+      <br/>
+      <strong>Remaining:</strong><br/>
+      Calories: ${remaining.calories} kcal<br/>
+      Protein: ${remaining.protein}g<br/>
+      Carbs: ${remaining.carbs}g<br/>
+      Fat: ${remaining.fat}g<br/>
+      Fiber: ${remaining.fiber}g
+    `;
+  }
+  function populateFoodOptions() {
       const datalist = document.getElementById("foodOptions");
       datalist.innerHTML = "";
-      for (const food in foodDB) {
+      Object.keys(foodDB).forEach(food => {
         const option = document.createElement("option");
         option.value = food;
         datalist.appendChild(option);
-      }
+      });
     }
 
     populateFoodOptions();
+    loadFoodFromFirestore();
   </script>
 </body>
 </html>
