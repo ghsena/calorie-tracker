@@ -240,13 +240,67 @@
     time: new Date().toLocaleTimeString()
   };
 
-  foods.push(foodEntry);
-  document.getElementById("status").textContent = `✅ Added: ${name} (${weight}g at ${foodEntry.time})`;
-  renderFoodTable();
-  updateMacroSummary();
-  document.getElementById("foodName").value = "";
-  document.getElementById("foodWeight").value = "";
+  // Send to Google Sheets backend
+  fetch("https://script.google.com/macros/s/AKfycbxhsk3nvRPjMvJI9NkQGYQlPKLibEwpiSSGhi2gt3TTK6cLko3GFkfopfbJF598db2z/exec", {
+    method: "POST",
+    body: JSON.stringify(foodEntry),
+    headers: {
+      "Content-Type": "application/json"
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.result === "success") {
+      document.getElementById("status").textContent = `✅ Added: ${name} (${weight}g at ${foodEntry.time})`;
+      foods.push(foodEntry);
+      renderFoodTable();
+      updateMacroSummary();
+      document.getElementById("foodName").value = "";
+      document.getElementById("foodWeight").value = "";
+    } else {
+      alert("Failed to save food entry.");
+    }
+  })
+  .catch(err => {
+    alert("Error connecting to backend.");
+    console.error(err);
+  });
 }
+//   function addFood() {
+//   const name = document.getElementById("foodName").value.trim().toLowerCase();
+//   const weight = parseFloat(document.getElementById("foodWeight").value);
+
+//   if (!name || isNaN(weight) || weight <= 0) {
+//     alert("Please enter a valid food name and a weight greater than 0.");
+//     return;
+//   }
+
+//   const foodInfo = foodDB[name];
+//   if (!foodInfo) {
+//     alert("Food not found in database.");
+//     return;
+//   }
+
+//   const factor = weight / 100;
+
+//   const foodEntry = {
+//     name,
+//     weight,
+//     calories: +(foodInfo.calories * factor).toFixed(1),
+//     protein: +(foodInfo.protein * factor).toFixed(1),
+//     carbs: +(foodInfo.carbs * factor).toFixed(1),
+//     fat: +(foodInfo.fat * factor).toFixed(1),
+//     fiber: +(foodInfo.fiber * factor).toFixed(1),
+//     time: new Date().toLocaleTimeString()
+//   };
+
+//   foods.push(foodEntry);
+//   document.getElementById("status").textContent = `✅ Added: ${name} (${weight}g at ${foodEntry.time})`;
+//   renderFoodTable();
+//   updateMacroSummary();
+//   document.getElementById("foodName").value = "";
+//   document.getElementById("foodWeight").value = "";
+// }
 
   function renderFoodTable() {
     const tbody = document.querySelector("#foodTable tbody");
