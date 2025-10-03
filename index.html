@@ -67,6 +67,26 @@
     <button onclick="calculateBMR()">Auto-Calculate Goals</button>
   </div>
 
+  <div class="daily-needs">
+  <h3>Set Daily Nutritional Goals</h3>
+  <label>Calories: <input type="number" id="dailyCalories" min="0" /></label>
+  <label>Protein (g): <input type="number" id="dailyProtein" min="0" /></label>
+  <label>Carbs (g): <input type="number" id="dailyCarbs" min="0" /></label>
+  <label>Fat (g): <input type="number" id="dailyFat" min="0" /></label>
+  <label>Fiber (g): <input type="number" id="dailyFiber" min="0" /></label>
+  <button onclick="calculateNeeds()">Set Goals</button>
+
+  <!-- Read-only summary of goals -->
+  <div id="goalSummary" style="margin-top: 10px; padding: 10px; background: #eef; border: 1px solid #99c;">
+    <strong>Current Nutritional Goals:</strong>
+    <div>Calories: <span id="goalCalories">0</span> kcal</div>
+    <div>Protein: <span id="goalProtein">0</span> g</div>
+    <div>Carbs: <span id="goalCarbs">0</span> g</div>
+    <div>Fat: <span id="goalFat">0</span> g</div>
+    <div>Fiber: <span id="goalFiber">0</span> g</div>
+  </div>
+</div>
+
   <!-- Basic Daily Goals Input -->
   <div class="daily-needs">
     <h3>Set Daily Nutritional Goals</h3>
@@ -215,14 +235,26 @@
       const f = parseFloat(document.getElementById("dailyFat").value);
       const fiber = parseFloat(document.getElementById("dailyFiber").value);
 
+      // Validate non-negative numbers and no NaN
       if ([c, p, carbs, f, fiber].some(v => isNaN(v) || v < 0)) {
-        alert("Please enter valid numbers for all fields.");
+        alert("Please enter valid non-negative numbers for all fields.");
         return;
       }
 
       dailyNeeds = { calories: c, protein: p, carbs: carbs, fat: f, fiber: fiber };
       updateMacroSummary();
+      updateGoalSummary();
+
       alert("Daily nutritional goals updated!");
+    }
+
+    // Update the read-only summary display
+    function updateGoalSummary() {
+      document.getElementById("goalCalories").textContent = dailyNeeds.calories;
+      document.getElementById("goalProtein").textContent = dailyNeeds.protein;
+      document.getElementById("goalCarbs").textContent = dailyNeeds.carbs;
+      document.getElementById("goalFat").textContent = dailyNeeds.fat;
+      document.getElementById("goalFiber").textContent = dailyNeeds.fiber;
     }
 
     // Calculate BMR & set goals automatically
