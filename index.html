@@ -97,7 +97,7 @@
       "white rice cooked": { calories: 130, protein: 2.4, carbs: 28, fat: 0.3, fiber: 0.4 },
       "egg white": { calories: 52, protein: 11, carbs: 0.7, fat: 0.2, fiber: 0 },
       "egg": { calories: 155, protein: 13, carbs: 1.1, fat: 11, fiber: 0 },
-      "egg yalk": { calories: 322, protein: 16, carbs: 3.6, fat: 27, fiber: 0 },
+      "egg yolk": { calories: 322, protein: 16, carbs: 3.6, fat: 27, fiber: 0 },
       "carrot": { calories: 41, protein: 0.9, carbs: 10, fat: 0.2, fiber: 2.8 },
       "beans": { calories: 31, protein: 1.8, carbs: 7, fat: 0.1, fiber: 3.4 },
       "cauliflower": { calories: 25, protein: 1.9, carbs: 5, fat: 0.3, fiber: 2 },
@@ -162,13 +162,13 @@
     }
 
     function loadFoodFromFirestore() {
-      db.collection("foodLogs")
+          db.collection("foodLogs")
         .orderBy("time", "desc")
         .get()
         .then((snapshot) => {
           foods = [];
           snapshot.forEach((doc) => {
-            foods.push(doc.data());
+            foods.push({ ...doc.data(), id: doc.id }); // ✅ Store document ID
           });
           renderFoodTable();
           updateMacroSummary();
@@ -287,9 +287,22 @@
     }
 
     function deleteFood(index) {
-      foods.splice(index, 1);
-      renderFoodTable();
-      updateMacroSummary();
+      const food = foods[index];
+      if (!food.id) {
+        alert("Cannot delete. No document ID found.");
+        return;
+      }
+
+      db.collection("foodLogs").doc(food.id).delete()
+        .then(() => {
+          foods.splice(index, 1);
+          renderFoodTable();
+          updateMacroSummary();
+        })
+        .catch((error) => {
+          alert("Error deleting food.");
+          console.error("Delete error:", error);
+        });
     }
 
     function updateMacroSummary() {
@@ -340,7 +353,6 @@
 
     // Initialize
     populateFoodOptions();
-    loadFoodFromFirestore();
   </script>
 </body>
 </html>
