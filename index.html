@@ -114,6 +114,8 @@
     firebase.auth().onAuthStateChanged((user) => {
       if (user) {
         console.log("✅ User is signed in:", user.uid);
+        document.querySelector(".main").style.display = "block";
+        document.querySelector(".sidebar").style.display = "block";
         document.getElementById("userInfo").classList.remove("hidden");
         document.getElementById("authForm").classList.add("hidden");
         document.getElementById("userEmail").textContent = user.email || "Anonymous";
@@ -130,25 +132,31 @@
 
     function loadFoodFromFirestore() {
       const user = firebase.auth().currentUser;
+
       if (!user) {
-        console.error("❌ loadFood: no user");
+        console.error("❌ No user signed in.");
         return;
       }
+
       db.collection("foodLogs")
         .where("userId", "==", user.uid)
         .orderBy("time", "desc")
         .get()
-        .then(snapshot => {
+        .then((snapshot) => {
           foods = [];
-          snapshot.forEach(doc => {
-            const obj = doc.data();
-            obj.id = doc.id;  // store id for editing/deleting
-            foods.push(obj);
+          if (snapshot.empty) {
+            console.warn("⚠️ No food logs found for user:", user.uid);
+          }
+          snapshot.forEach((doc) => {
+            const data = doc.data();
+            data.id = doc.id; // ← add this if you want to delete/edit later
+            foods.push(data);
           });
+          console.log("✅ Loaded foods:", foods);
           renderFoodTable();
           updateMacroSummary();
         })
-        .catch(error => {
+        .catch((error) => {
           console.error("Error loading food logs:", error);
         });
     }
