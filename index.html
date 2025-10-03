@@ -162,22 +162,37 @@
     }
 
     function loadFoodFromFirestore() {
-      firebase.auth().onAuthStateChanged((user) => {
-        if (user) {
-          console.log("✅ User signed in:", user.uid);
-          loadFoodFromFirestore(); // Your existing load function
-        } else {
-          firebase.auth().signInAnonymously()
-            .then((cred) => {
-              console.log("✅ Signed in anonymously:", cred.user.uid);
-              loadFoodFromFirestore(); // load after successful sign-in
-            })
-            .catch((error) => {
-              console.error("❌ Auth error:", error);
-            });
-        }
-      });
+      db.collection("foodLogs")
+        .orderBy("time", "desc")
+        .get()
+        .then((snapshot) => {
+          foods = [];
+          snapshot.forEach((doc) => {
+            foods.push(doc.data());
+          });
+          renderFoodTable();
+          updateMacroSummary();
+        })
+        .catch((error) => {
+          console.error("Error loading food logs:", error);
+        });
     }
+
+    firebase.auth().onAuthStateChanged((user) => {
+      if (user) {
+        console.log("✅ User signed in:", user.uid);
+        loadFoodFromFirestore(); // ✅ Only fetch when signed in
+      } else {
+        firebase.auth().signInAnonymously()
+          .then((cred) => {
+            console.log("✅ Signed in anonymously:", cred.user.uid);
+            // No need to call loadFoodFromFirestore() again, it will be triggered by onAuthStateChanged above
+          })
+          .catch((error) => {
+            console.error("❌ Auth error:", error);
+          });
+      }
+    });
 
     function addFood() {
       const name = document.getElementById("foodName").value.trim().toLowerCase();
