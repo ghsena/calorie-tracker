@@ -40,7 +40,28 @@
       <button onclick="signUp()">Sign Up</button>
     </div>
   </div>
-
+  <div class="daily-needs">
+  <h3>Enter Your Details</h3>
+  <label>Weight (kg): <input type="number" id="userWeight" /></label>
+  <label>Height (cm): <input type="number" id="userHeight" /></label>
+  <label>Age: <input type="number" id="userAge" /></label>
+  <label>Gender:
+    <select id="userGender">
+      <option value="male">Male</option>
+      <option value="female">Female</option>
+    </select>
+  </label>
+  <label>Activity Level:
+    <select id="userActivity">
+      <option value="1.2">Sedentary</option>
+      <option value="1.375">Light</option>
+      <option value="1.55">Moderate</option>
+      <option value="1.725">Active</option>
+      <option value="1.9">Very Active</option>
+    </select>
+  </label>
+  <button onclick="calculateBMR()">Auto-Calculate Goals</button>
+</div>
   <div class="main">
   <h3>Add Food</h3>
   <input list="foodOptions" id="foodName" placeholder="Enter food name" />
@@ -165,6 +186,56 @@
         protein: p,
         carbs: carbs,
         fat: f,
+        fiber: fiber
+      };
+
+      updateMacroSummary();
+    }
+
+    function calculateBMR() {
+      const weight = parseFloat(document.getElementById("userWeight").value);
+      const height = parseFloat(document.getElementById("userHeight").value);
+      const age = parseFloat(document.getElementById("userAge").value);
+      const gender = document.getElementById("userGender").value;
+      const activity = parseFloat(document.getElementById("userActivity").value);
+
+      if ([weight, height, age].some(isNaN)) {
+        alert("Please fill in all fields.");
+        return;
+      }
+
+      // Mifflin-St Jeor Equation
+      let bmr;
+      if (gender === "male") {
+        bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+      } else {
+        bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+      }
+
+      const tdee = bmr * activity;
+
+      // Basic macro breakdown (for fitness goals, you can adjust)
+      const protein = weight * 2; // 2g per kg of body weight
+      const fat = weight * 1;     // 1g per kg
+      const fatCalories = fat * 9;
+      const proteinCalories = protein * 4;
+      const remainingCalories = tdee - (fatCalories + proteinCalories);
+      const carbs = remainingCalories / 4;
+      const fiber = 30; // a healthy fixed target
+
+      // Fill in the goal inputs
+      document.getElementById("dailyCalories").value = Math.round(tdee);
+      document.getElementById("dailyProtein").value = Math.round(protein);
+      document.getElementById("dailyCarbs").value = Math.round(carbs);
+      document.getElementById("dailyFat").value = Math.round(fat);
+      document.getElementById("dailyFiber").value = fiber;
+
+      // Update global dailyNeeds object
+      dailyNeeds = {
+        calories: Math.round(tdee),
+        protein: Math.round(protein),
+        carbs: Math.round(carbs),
+        fat: Math.round(fat),
         fiber: fiber
       };
 
