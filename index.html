@@ -4,75 +4,29 @@
   <meta charset="UTF-8" />
   <title>Calorie & Macro Tracker (Auto DB)</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      max-width: 1000px;
-      margin: auto;
-      display: flex;
-      flex-direction: row;
-      gap: 40px;
-    }
-    .main, .sidebar { flex: 1; }
-    label, input, select, button { display: block; margin-bottom: 10px; }
-    h2, h3 { margin-top: 0; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 6px;
-      text-align: left;
-    }
-    .summary { margin-top: 20px; }
+    /* (your existing CSS) */
     .hidden { display: none; }
   </style>
 </head>
 <body>
   <div id="authSection">
-  <div id="userInfo" class="hidden">
-    Logged in as: <span id="userEmail"></span>
-    <button onclick="signOut()">Sign Out</button>
+    <div id="userInfo" class="hidden">
+      Logged in as: <span id="userEmail"></span>
+      <button onclick="signOut()">Sign Out</button>
+    </div>
+    <div id="authForm">
+      <input type="email" id="email" placeholder="Email" />
+      <input type="password" id="password" placeholder="Password" />
+      <button onclick="signIn()">Sign In</button>
+      <button onclick="signUp()">Sign Up</button>
+    </div>
   </div>
-  <div id="authForm">
-    <input type="email" id="email" placeholder="Email" />
-    <input type="password" id="password" placeholder="Password" />
-    <button onclick="signIn()">Sign In</button>
-    <button onclick="signUp()">Sign Up</button>
-  </div>
-</div>
+
   <div class="main">
-    <h2>Nutrition Setup</h2>
-    <label for="bmrInput">Enter Your BMR:</label>
-    <input type="number" id="bmrInput" name="bmr" placeholder="e.g. 1800" value="1700" />
-    <label for="goalSelect">Goal:</label>
-    <select id="goalSelect">
-      <option value="bulk">Bulk (Gain Weight)</option>
-      <option value="cut">Cut (Lose Weight)</option>
-    </select>
-    <label for="weightGoal">Weight Goal (kg):</label>
-    <input type="number" id="weightGoal" name="weightGoal" value="75" />
-    <label for="currentWeight">Current Weight (kg):</label>
-    <input type="number" id="currentWeight" name="currentWeight" value="72" />
-    <button onclick="calculateNeeds()">Calculate Needs</button>
-
-    <div class="summary" id="needsSummary"></div>
-
-    <h2>Log Food (Auto Nutrition)</h2>
-    <label for="foodName">Food Name:</label>
-    <input type="text" id="foodName" name="foodName" list="foodOptions" placeholder="e.g. apple" />
-    <datalist id="foodOptions"></datalist>
-    <label for="foodWeight">Weight (g):</label>
-    <input type="number" id="foodWeight" name="foodWeight" placeholder="e.g. 100" />
-    <button onclick="addFood()">Add Food</button>
-    <button onclick="toggleFoodList()">List Added Foods</button>
-    <div id="status" style="color: green; margin-top: 10px;"></div>
+    <!-- your nutrition and log UI -->
+    <!-- ... -->
   </div>
-
   <div class="sidebar">
-    <h3>Daily Log</h3>
     <table id="foodTable" class="hidden">
       <thead>
         <tr>
@@ -82,10 +36,9 @@
       </thead>
       <tbody></tbody>
     </table>
-    <div class="summary" id="macroSummary"></div>
+    <div id="macroSummary" class="summary"></div>
   </div>
 
-  <!-- ✅ Correct Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -100,66 +53,52 @@
       appId: "1:650970455289:web:ed766275c675a0a1111628",
       measurementId: "G-5LHNSXQFDM"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
     const foodDB = {
       "brown rice cooked": { calories: 111, protein: 2.6, carbs: 23, fat: 0.9, fiber: 1.8 },
-      "white rice cooked": { calories: 130, protein: 2.4, carbs: 28, fat: 0.3, fiber: 0.4 },
-      "egg white": { calories: 52, protein: 11, carbs: 0.7, fat: 0.2, fiber: 0 },
-      "egg": { calories: 155, protein: 13, carbs: 1.1, fat: 11, fiber: 0 },
-      "egg yolk": { calories: 322, protein: 16, carbs: 3.6, fat: 27, fiber: 0 },
-      "carrot": { calories: 41, protein: 0.9, carbs: 10, fat: 0.2, fiber: 2.8 },
-      "beans": { calories: 31, protein: 1.8, carbs: 7, fat: 0.1, fiber: 3.4 },
-      "cauliflower": { calories: 25, protein: 1.9, carbs: 5, fat: 0.3, fiber: 2 },
-      "cabbage": { calories: 25, protein: 1.3, carbs: 6, fat: 0.1, fiber: 2.5 },
-      "brinjal": { calories: 25, protein: 1, carbs: 6, fat: 0.2, fiber: 3 },
-      "beetroot": { calories: 43, protein: 1.6, carbs: 10, fat: 0.2, fiber: 2.8 },
-      "spinach": { calories: 23, protein: 2.9, carbs: 3.6, fat: 0.4, fiber: 2.2 },
-      "gooseberry": { calories: 44, protein: 1, carbs: 10, fat: 0.6, fiber: 4.3 },
-      "banana": { calories: 89, protein: 1.1, carbs: 23, fat: 0.3, fiber: 2.6 },
-      "almond": { calories: 579, protein: 21, carbs: 22, fat: 50, fiber: 12.5 },
-      "coconut oil": { calories: 862, protein: 0, carbs: 0, fat: 100, fiber: 0 },
-      "ghee": { calories: 900, protein: 0, carbs: 0, fat: 100, fiber: 0 },
-      "whey protein": { calories: 400, protein: 80, carbs: 10, fat: 5, fiber: 0 },
-      "chicken breast": { calories: 165, protein: 31, carbs: 0, fat: 3.6, fiber: 0 },
-      "chicken thigh": { calories: 209, protein: 26, carbs: 0, fat: 10.9, fiber: 0 },
-      "guava": { calories: 68, protein: 2.6, carbs: 14, fat: 1, fiber: 5.4 },
-      "pineapple": { calories: 50, protein: 0.5, carbs: 13, fat: 0.1, fiber: 1.4 }
+      // ... rest of your food items
     };
 
     let foods = [];
-    let dailyNeeds = { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
+    let dailyNeeds = { calories:0, protein:0, carbs:0, fat:0, fiber:0 };
+
+    // — Auth / Persistence / UI Handling —
 
     function signIn() {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
-
-      firebase.auth().signInWithEmailAndPassword(email, password)
+      firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+        .then(() => {
+          return firebase.auth().signInWithEmailAndPassword(email, password);
+        })
         .then((userCredential) => {
           console.log("✅ Signed in:", userCredential.user.email);
         })
-        .catch((error) => {
-          alert("❌ Sign-in failed: " + error.message);
+        .catch(error => {
+          alert("Sign-in failed: " + error.message);
         });
     }
 
     function signUp() {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
-
-      firebase.auth().createUserWithEmailAndPassword(email, password)
-      .then((userCredential) => {
-        const user = userCredential.user;
-        return user.sendEmailVerification().then(() => {
-          alert("Verification email sent. Please check your inbox.");
-          firebase.auth().signOut(); // Optionally log them out until verified
+      firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+        .then(() => {
+          return firebase.auth().createUserWithEmailAndPassword(email, password);
+        })
+        .then((userCredential) => {
+          const user = userCredential.user;
+          // Optionally send verification
+          user.sendEmailVerification()
+            .then(() => {
+              alert("Verification email sent. Please check your inbox.");
+            });
+        })
+        .catch(error => {
+          alert("Sign-up failed: " + error.message);
         });
-      })
-      .catch((error) => {
-        console.error("Signup error:", error.message);
-      });
     }
 
     function signOut() {
@@ -167,114 +106,75 @@
         .then(() => {
           console.log("✅ Signed out");
         })
-        .catch((error) => {
-          alert("❌ Sign-out error: " + error.message);
-        });
-    }
-
-    function calculateNeeds() {
-      const bmr = parseFloat(document.getElementById("bmrInput").value);
-      const goal = document.getElementById("goalSelect").value;
-      const currentWeight = parseFloat(document.getElementById("currentWeight").value);
-      const weightGoal = parseFloat(document.getElementById("weightGoal").value);
-
-      if (isNaN(bmr) || isNaN(currentWeight) || isNaN(weightGoal)) {
-        alert("Please enter valid numbers.");
-        return;
-      }
-
-      let calories = bmr;
-      const diff = weightGoal - currentWeight;
-
-      // Modify calorie needs slightly based on goal
-      if (goal === "bulk") {
-        calories += 300;
-      } else if (goal === "cut") {
-        calories -= 300;
-      }
-
-      dailyNeeds = {
-        calories: Math.round(calories),
-        protein: Math.round(currentWeight * 2),
-        carbs: Math.round(calories * 0.5 / 4),
-        fat: Math.round(calories * 0.25 / 9),
-        fiber: 25
-      };
-
-      document.getElementById("needsSummary").innerHTML = `
-        <strong>Daily Targets:</strong><br/>
-        Calories: ${dailyNeeds.calories} kcal<br/>
-        Protein: ${dailyNeeds.protein} g<br/>
-        Carbs: ${dailyNeeds.carbs} g<br/>
-        Fat: ${dailyNeeds.fat} g<br/>
-        Fiber: ${dailyNeeds.fiber} g
-      `;
-
-      updateMacroSummary();
-    }
-
-    function loadFoodFromFirestore() {
-      const user = firebase.auth().currentUser;
-      
-      if (!user) {
-        console.error("❌ No user signed in.");
-        return;
-      }
-
-      db.collection("foodLogs")
-        .where("userId", "==", user.uid)
-        .orderBy("time", "desc")
-        .get()
-        .then((snapshot) => {
-          foods = [];
-          snapshot.forEach((doc) => {
-            foods.push(doc.data());
-          });
-          renderFoodTable();
-          updateMacroSummary();
-        })
-        .catch((error) => {
-          console.error("Error loading food logs:", error);
+        .catch(error => {
+          alert("Sign-out error: " + error.message);
         });
     }
 
     firebase.auth().onAuthStateChanged((user) => {
       if (user) {
-          if (user.emailVerified) {
-            console.log("✅ Email verified, continue...");
-            loadFoodFromFirestore(); // your existing logic
-          } else {
-            alert("Please verify your email before using the app.");
-            firebase.auth().signOut();
-          }
-        }
-      });
+        console.log("✅ User is signed in:", user.uid);
+        document.getElementById("userInfo").classList.remove("hidden");
+        document.getElementById("authForm").classList.add("hidden");
+        document.getElementById("userEmail").textContent = user.email || "Anonymous";
+        loadFoodFromFirestore();
+      } else {
+        console.log("⚠️ No user signed in.");
+        document.getElementById("userInfo").classList.add("hidden");
+        document.getElementById("authForm").classList.remove("hidden");
+        // ❌ REMOVE signInAnonymously unless you want guests
+      }
+    });
+
+    // — Food Log Functions —
+
+    function loadFoodFromFirestore() {
+      const user = firebase.auth().currentUser;
+      if (!user) {
+        console.error("❌ loadFood: no user");
+        return;
+      }
+      db.collection("foodLogs")
+        .where("userId", "==", user.uid)
+        .orderBy("time", "desc")
+        .get()
+        .then(snapshot => {
+          foods = [];
+          snapshot.forEach(doc => {
+            const obj = doc.data();
+            obj.id = doc.id;  // store id for editing/deleting
+            foods.push(obj);
+          });
+          renderFoodTable();
+          updateMacroSummary();
+        })
+        .catch(error => {
+          console.error("Error loading food logs:", error);
+        });
+    }
 
     function addFood() {
       const user = firebase.auth().currentUser;
       if (!user) {
-        alert("User not signed in.");
+        alert("You must be signed in.");
         return;
       }
-
       const name = document.getElementById("foodName").value.trim().toLowerCase();
       const weight = parseFloat(document.getElementById("foodWeight").value);
       if (!name || isNaN(weight) || weight <= 0) {
-        alert("Please enter a valid food name and weight.");
+        alert("Please enter valid food & weight.");
         return;
       }
-
       const foodInfo = foodDB[name];
       if (!foodInfo) {
-        alert("Food not found in database.");
+        alert("Food not found.");
         return;
       }
-
       const factor = weight / 100;
       const foodEntry = {
-        userId: user.uid, // ✅ attach user ID
-        name,
-        weight,
+        userId: user.uid,
+        name: name,
+        weight: weight,
         calories: +(foodInfo.calories * factor).toFixed(1),
         protein: +(foodInfo.protein * factor).toFixed(1),
         carbs: +(foodInfo.carbs * factor).toFixed(1),
@@ -286,22 +186,21 @@
       db.collection("foodLogs").add(foodEntry)
         .then(() => {
           document.getElementById("status").textContent = `✅ Added: ${name} (${weight}g)`;
+          // Prepend or push
           foods.unshift(foodEntry);
           renderFoodTable();
           updateMacroSummary();
           document.getElementById("foodName").value = "";
           document.getElementById("foodWeight").value = "";
         })
-        .catch((error) => {
-          alert("Error saving to Firebase.");
-          console.error("Firebase Error:", error);
+        .catch(error => {
+          alert("Error saving: " + error.message);
         });
     }
 
     function renderFoodTable() {
       const tbody = document.querySelector("#foodTable tbody");
       tbody.innerHTML = "";
-
       foods.forEach((food, index) => {
         const row = document.createElement("tr");
         row.innerHTML = `
@@ -317,60 +216,65 @@
         `;
         tbody.appendChild(row);
       });
-    }
-
-    function toggleFoodList() {
-      document.getElementById("foodTable").classList.toggle("hidden");
+      document.getElementById("foodTable").classList.remove("hidden");
     }
 
     function editFood(index, newWeight) {
       newWeight = parseFloat(newWeight);
       if (isNaN(newWeight) || newWeight <= 0) {
-        alert("Weight must be a positive number.");
-        renderFoodTable(); // Reset input
+        alert("Weight must be positive.");
+        renderFoodTable();
         return;
       }
-
       const food = foods[index];
       const base = foodDB[food.name];
       const factor = newWeight / 100;
-
-      foods[index] = {
+      const newObj = {
         ...food,
         weight: newWeight,
         calories: +(base.calories * factor).toFixed(1),
         protein: +(base.protein * factor).toFixed(1),
         carbs: +(base.carbs * factor).toFixed(1),
         fat: +(base.fat * factor).toFixed(1),
-        fiber: +(base.fiber * factor).toFixed(1),
+        fiber: +(base.fiber * factor).toFixed(1)
       };
-
-      renderFoodTable();
-      updateMacroSummary();
+      // Update both locally and in Firestore
+      if (food.id) {
+        db.collection("foodLogs").doc(food.id).update(newObj)
+          .then(() => {
+            foods[index] = newObj;
+            renderFoodTable();
+            updateMacroSummary();
+          })
+          .catch(error => {
+            alert("Error updating: " + error.message);
+          });
+      } else {
+        foods[index] = newObj;
+        renderFoodTable();
+        updateMacroSummary();
+      }
     }
 
     function deleteFood(index) {
       const food = foods[index];
       if (!food.id) {
-        alert("Cannot delete. No document ID found.");
+        alert("Cannot delete: no id.");
         return;
       }
-
       db.collection("foodLogs").doc(food.id).delete()
         .then(() => {
           foods.splice(index, 1);
           renderFoodTable();
           updateMacroSummary();
         })
-        .catch((error) => {
-          alert("Error deleting food.");
-          console.error("Delete error:", error);
+        .catch(error => {
+          alert("Delete error: " + error.message);
         });
     }
 
     function updateMacroSummary() {
-      const totals = { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
-
+      const totals = { calories:0, protein:0, carbs:0, fat:0, fiber:0 };
       for (const food of foods) {
         totals.calories += food.calories;
         totals.protein += food.protein;
@@ -378,7 +282,6 @@
         totals.fat += food.fat;
         totals.fiber += food.fiber;
       }
-
       const remaining = {
         calories: Math.max(0, dailyNeeds.calories - totals.calories).toFixed(1),
         protein: Math.max(0, dailyNeeds.protein - totals.protein).toFixed(1),
@@ -386,7 +289,6 @@
         fat: Math.max(0, dailyNeeds.fat - totals.fat).toFixed(1),
         fiber: Math.max(0, dailyNeeds.fiber - totals.fiber).toFixed(1)
       };
-
       document.getElementById("macroSummary").innerHTML = `
         <strong>Today So Far:</strong><br/>
         Calories: ${totals.calories.toFixed(1)} / ${dailyNeeds.calories} kcal<br/>
@@ -404,6 +306,10 @@
       `;
     }
 
+    function toggleFoodList() {
+      document.getElementById("foodTable").classList.toggle("hidden");
+    }
+
     function populateFoodOptions() {
       const datalist = document.getElementById("foodOptions");
       datalist.innerHTML = "";
@@ -414,7 +320,6 @@
       }
     }
 
-    // Initialize
     populateFoodOptions();
   </script>
 </body>
