@@ -158,14 +158,18 @@
         document.getElementById("userInfo").classList.remove("hidden");
         document.getElementById("authForm").classList.add("hidden");
         document.getElementById("userEmail").textContent = user.email || "Anonymous";
+
         loadFoodFromFirestore();
 
         dailyNeeds = { calories: 2000, protein: 150, carbs: 250, fat: 70, fiber: 30 };
+        console.log("Daily Needs (Default):", dailyNeeds);
         updateMacroSummary();
       } else {
         console.log("⚠️ No user signed in.");
         document.getElementById("userInfo").classList.add("hidden");
         document.getElementById("authForm").classList.remove("hidden");
+        document.querySelector(".main").style.display = "none";
+        document.querySelector(".sidebar").style.display = "none";
       }
     });
 
@@ -243,24 +247,25 @@
     }
 
     function loadFoodFromFirestore() {
-      const user = auth.currentUser;
-      if (!user) return;
-      db.collection("foodLogs")
-        .where("userId", "==", user.uid)
-        .orderBy("time", "desc")
-        .get()
-        .then(snapshot => {
-          foods = [];
-          snapshot.forEach(doc => {
-            const obj = doc.data();
-            obj.id = doc.id;
-            foods.push(obj);
-          });
-          renderFoodTable();
-          updateMacroSummary();
-        })
-        .catch(error => console.error("Error loading food logs:", error));
-    }
+  const user = firebase.auth().currentUser;
+  if (!user) return;
+  db.collection("foodLogs")
+    .where("userId", "==", user.uid)
+    .orderBy("time", "desc")
+    .get()
+    .then(snapshot => {
+      foods = [];
+      snapshot.forEach(doc => {
+        console.log("Loaded foods:", foods);
+        const obj = doc.data();
+        obj.id = doc.id;
+        foods.push(obj);
+      });
+      renderFoodTable(); // 👈 Shows table
+      updateMacroSummary(); // 👈 Updates macros
+    })
+    .catch(error => console.error("Error loading food logs:", error));
+}
 
     function addFood() {
       const user = auth.currentUser;
@@ -310,6 +315,7 @@
         tbody.appendChild(row);
       });
       document.getElementById("foodTable").classList.remove("hidden");
+      console.log("Rendering food table with", foods.length, "items");
     }
 
     function editFood(index, newWeight) {
