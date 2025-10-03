@@ -4,9 +4,28 @@
   <meta charset="UTF-8" />
   <title>Calorie & Macro Tracker (Auto DB)</title>
   <style>
-    /* (your existing CSS) */
-    .hidden { display: none; }
+    .hidden {
+      display: none;
+    }
+
+    .main input,
+    .main button {
+      margin: 5px;
+    }
+
+    .daily-needs {
+      margin: 20px 0;
+      padding: 10px;
+      border: 1px solid #ccc;
+      background: #f9f9f9;
+    }
+
+    .daily-needs label {
+      display: block;
+      margin-bottom: 6px;
+    }
   </style>
+
 </head>
 <body>
   <div id="authSection">
@@ -23,9 +42,25 @@
   </div>
 
   <div class="main">
-    <!-- your nutrition and log UI -->
-    <!-- ... -->
+  <h3>Add Food</h3>
+  <input list="foodOptions" id="foodName" placeholder="Enter food name" />
+  <datalist id="foodOptions"></datalist>
+  <input type="number" id="foodWeight" placeholder="Weight (g)" />
+  <button onclick="addFood()">Add Food</button>
+  <p id="status"></p>
+</div>
+
+  <!-- ✅ STEP 1: Daily Needs Input UI -->
+  <div class="daily-needs">
+    <h3>Set Daily Nutritional Goals</h3>
+    <label>Calories: <input type="number" id="dailyCalories" /></label>
+    <label>Protein (g): <input type="number" id="dailyProtein" /></label>
+    <label>Carbs (g): <input type="number" id="dailyCarbs" /></label>
+    <label>Fat (g): <input type="number" id="dailyFat" /></label>
+    <label>Fiber (g): <input type="number" id="dailyFiber" /></label>
+    <button onclick="calculateNeeds()">Set Goals</button>
   </div>
+
   <div class="sidebar">
     <table id="foodTable" class="hidden">
       <thead>
@@ -39,6 +74,7 @@
     <div id="macroSummary" class="summary"></div>
   </div>
 
+  <!-- Firebase + Your App Scripts -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -58,57 +94,37 @@
 
     const foodDB = {
       "brown rice cooked": { calories: 111, protein: 2.6, carbs: 23, fat: 0.9, fiber: 1.8 },
-      // ... rest of your food items
+      // Add more foods here
     };
 
     let foods = [];
-    let dailyNeeds = { calories:0, protein:0, carbs:0, fat:0, fiber:0 };
-
-    // — Auth / Persistence / UI Handling —
+    let dailyNeeds = { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
 
     function signIn() {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
       firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-        .then(() => {
-          return firebase.auth().signInWithEmailAndPassword(email, password);
-        })
-        .then((userCredential) => {
-          console.log("✅ Signed in:", userCredential.user.email);
-        })
-        .catch(error => {
-          alert("Sign-in failed: " + error.message);
-        });
+        .then(() => firebase.auth().signInWithEmailAndPassword(email, password))
+        .catch(error => alert("Sign-in failed: " + error.message));
     }
 
     function signUp() {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
       firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-        .then(() => {
-          return firebase.auth().createUserWithEmailAndPassword(email, password);
-        })
+        .then(() => firebase.auth().createUserWithEmailAndPassword(email, password))
         .then((userCredential) => {
           const user = userCredential.user;
-          // Optionally send verification
           user.sendEmailVerification()
-            .then(() => {
-              alert("Verification email sent. Please check your inbox.");
-            });
+            .then(() => alert("Verification email sent. Please check your inbox."));
         })
-        .catch(error => {
-          alert("Sign-up failed: " + error.message);
-        });
+        .catch(error => alert("Sign-up failed: " + error.message));
     }
 
     function signOut() {
       firebase.auth().signOut()
-        .then(() => {
-          console.log("✅ Signed out");
-        })
-        .catch(error => {
-          alert("Sign-out error: " + error.message);
-        });
+        .then(() => console.log("✅ Signed out"))
+        .catch(error => alert("Sign-out error: " + error.message));
     }
 
     firebase.auth().onAuthStateChanged((user) => {
@@ -120,69 +136,73 @@
         document.getElementById("authForm").classList.add("hidden");
         document.getElementById("userEmail").textContent = user.email || "Anonymous";
         loadFoodFromFirestore();
+
+        // ✅ Auto-set some default values on login (optional)
+        dailyNeeds = { calories: 2000, protein: 150, carbs: 250, fat: 70, fiber: 30 };
+        updateMacroSummary();
       } else {
         console.log("⚠️ No user signed in.");
         document.getElementById("userInfo").classList.add("hidden");
         document.getElementById("authForm").classList.remove("hidden");
-        // ❌ REMOVE signInAnonymously unless you want guests
       }
     });
 
-    // — Food Log Functions —
+    function calculateNeeds() {
+      const c = parseFloat(document.getElementById("dailyCalories").value);
+      const p = parseFloat(document.getElementById("dailyProtein").value);
+      const carbs = parseFloat(document.getElementById("dailyCarbs").value);
+      const f = parseFloat(document.getElementById("dailyFat").value);
+      const fiber = parseFloat(document.getElementById("dailyFiber").value);
 
-    function loadFoodFromFirestore() {
-      const user = firebase.auth().currentUser;
-
-      if (!user) {
-        console.error("❌ No user signed in.");
+      if ([c, p, carbs, f, fiber].some(v => isNaN(v) || v < 0)) {
+        alert("Please enter valid numbers for all fields.");
         return;
       }
 
+      dailyNeeds = {
+        calories: c,
+        protein: p,
+        carbs: carbs,
+        fat: f,
+        fiber: fiber
+      };
+
+      updateMacroSummary();
+    }
+
+    function loadFoodFromFirestore() {
+      const user = firebase.auth().currentUser;
+      if (!user) return;
       db.collection("foodLogs")
         .where("userId", "==", user.uid)
         .orderBy("time", "desc")
         .get()
-        .then((snapshot) => {
+        .then(snapshot => {
           foods = [];
-          if (snapshot.empty) {
-            console.warn("⚠️ No food logs found for user:", user.uid);
-          }
-          snapshot.forEach((doc) => {
-            const data = doc.data();
-            data.id = doc.id; // ← add this if you want to delete/edit later
-            foods.push(data);
+          snapshot.forEach(doc => {
+            const obj = doc.data();
+            obj.id = doc.id;
+            foods.push(obj);
           });
-          console.log("✅ Loaded foods:", foods);
           renderFoodTable();
           updateMacroSummary();
         })
-        .catch((error) => {
-          console.error("Error loading food logs:", error);
-        });
+        .catch(error => console.error("Error loading food logs:", error));
     }
 
     function addFood() {
       const user = firebase.auth().currentUser;
-      if (!user) {
-        alert("You must be signed in.");
-        return;
-      }
+      if (!user) return alert("You must be signed in.");
       const name = document.getElementById("foodName").value.trim().toLowerCase();
       const weight = parseFloat(document.getElementById("foodWeight").value);
-      if (!name || isNaN(weight) || weight <= 0) {
-        alert("Please enter valid food & weight.");
-        return;
-      }
+      if (!name || isNaN(weight) || weight <= 0) return alert("Please enter valid food & weight.");
       const foodInfo = foodDB[name];
-      if (!foodInfo) {
-        alert("Food not found.");
-        return;
-      }
+      if (!foodInfo) return alert("Food not found.");
       const factor = weight / 100;
       const foodEntry = {
         userId: user.uid,
-        name: name,
-        weight: weight,
+        name,
+        weight,
         calories: +(foodInfo.calories * factor).toFixed(1),
         protein: +(foodInfo.protein * factor).toFixed(1),
         carbs: +(foodInfo.carbs * factor).toFixed(1),
@@ -190,20 +210,13 @@
         fiber: +(foodInfo.fiber * factor).toFixed(1),
         time: new Date().toISOString()
       };
-
       db.collection("foodLogs").add(foodEntry)
         .then(() => {
-          document.getElementById("status").textContent = `✅ Added: ${name} (${weight}g)`;
-          // Prepend or push
           foods.unshift(foodEntry);
           renderFoodTable();
           updateMacroSummary();
-          document.getElementById("foodName").value = "";
-          document.getElementById("foodWeight").value = "";
         })
-        .catch(error => {
-          alert("Error saving: " + error.message);
-        });
+        .catch(error => alert("Error saving: " + error.message));
     }
 
     function renderFoodTable() {
@@ -246,7 +259,6 @@
         fat: +(base.fat * factor).toFixed(1),
         fiber: +(base.fiber * factor).toFixed(1)
       };
-      // Update both locally and in Firestore
       if (food.id) {
         db.collection("foodLogs").doc(food.id).update(newObj)
           .then(() => {
@@ -254,35 +266,24 @@
             renderFoodTable();
             updateMacroSummary();
           })
-          .catch(error => {
-            alert("Error updating: " + error.message);
-          });
-      } else {
-        foods[index] = newObj;
-        renderFoodTable();
-        updateMacroSummary();
+          .catch(error => alert("Error updating: " + error.message));
       }
     }
 
     function deleteFood(index) {
       const food = foods[index];
-      if (!food.id) {
-        alert("Cannot delete: no id.");
-        return;
-      }
+      if (!food.id) return alert("Cannot delete: no id.");
       db.collection("foodLogs").doc(food.id).delete()
         .then(() => {
           foods.splice(index, 1);
           renderFoodTable();
           updateMacroSummary();
         })
-        .catch(error => {
-          alert("Delete error: " + error.message);
-        });
+        .catch(error => alert("Delete error: " + error.message));
     }
 
     function updateMacroSummary() {
-      const totals = { calories:0, protein:0, carbs:0, fat:0, fiber:0 };
+      const totals = { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
       for (const food of foods) {
         totals.calories += food.calories;
         totals.protein += food.protein;
@@ -303,8 +304,7 @@
         Protein: ${totals.protein.toFixed(1)}g / ${dailyNeeds.protein}g<br/>
         Carbs: ${totals.carbs.toFixed(1)}g / ${dailyNeeds.carbs}g<br/>
         Fat: ${totals.fat.toFixed(1)}g / ${dailyNeeds.fat}g<br/>
-        Fiber: ${totals.fiber.toFixed(1)}g / ${dailyNeeds.fiber}g<br/>
-        <br/>
+        Fiber: ${totals.fiber.toFixed(1)}g / ${dailyNeeds.fiber}g<br/><br/>
         <strong>Remaining:</strong><br/>
         Calories: ${remaining.calories} kcal<br/>
         Protein: ${remaining.protein}g<br/>
