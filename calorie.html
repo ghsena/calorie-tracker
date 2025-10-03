@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Calorie & Macro Tracker (Auto DB)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 1000px;
+      margin: auto;
+      display: flex;
+      flex-direction: row;
+      gap: 40px;
+    }
+    .main, .sidebar {
+      flex: 1;
+    }
+    label, input, select, button {
+      display: block;
+      margin-bottom: 10px;
+    }
+    h2, h3 {
+      margin-top: 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px;
+      text-align: left;
+    }
+    .summary {
+      margin-top: 20px;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="main">
+  <h2>Nutrition Setup</h2>
+
+  <label for="bmrInput">Enter Your BMR:</label>
+  <input type="number" id="bmrInput" placeholder="e.g. 1800" value="1700" />
+
+  <label for="goalSelect">Goal:</label>
+  <select id="goalSelect">
+    <option value="bulk">Bulk (Gain Weight)</option>
+    <option value="cut">Cut (Lose Weight)</option>
+  </select>
+
+  <label for="weightGoal">Weight Goal (kg):</label>
+  <input type="number" id="weightGoal" value="75" />
+
+  <label for="currentWeight">Current Weight (kg):</label>
+  <input type="number" id="currentWeight" value="72" />
+
+  <button onclick="calculateNeeds()">Calculate Needs</button>
+  <!-- <button onclick="<th>Food</th><th>Weight (g)</th><th>Calories</th><th>Protein</th><th>Carbs</th><th>Fat</th><th>Fiber</th><th>Time</th><th>Actions</th>">Calculate Needs</button> -->
+
+  <div class="summary" id="needsSummary"></div>
+
+  <h2>Log Food (Auto Nutrition)</h2>
+  <label for="foodName">Food Name:</label>
+  <input type="text" id="foodName" list="foodOptions" placeholder="e.g. apple" />
+  <datalist id="foodOptions"></datalist>
+
+  <label for="foodWeight">Weight (g):</label>
+  <input type="number" id="foodWeight" placeholder="e.g. 100" />
+
+  <button onclick="addFood()">Add Food</button>
+  <button onclick="toggleFoodList()">List Added Foods</button>
+
+  <div id="status" style="color: green; margin-top: 10px;"></div>
+</div>
+
+<div class="sidebar">
+  <h3>Daily Log</h3>
+  <table id="foodTable" class="hidden">
+    <thead>
+      <tr>
+        <th>Time</th><th>Food</th><th>Weight (g)</th><th>Calories</th><th>Protein</th><th>Carbs</th><th>Fat</th><th>Fiber</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div class="summary" id="macroSummary"></div>
+</div>
+
+<script>
+  // Static food database (per 100g)
+  const foodDB = {
+    "brown rice cooked": { calories: 111, protein: 2.6, carbs: 23, fat: 0.9, fiber: 1.8 },
+    "white rice cooked": { calories: 130, protein: 2.4, carbs: 28, fat: 0.3, fiber: 0.4 },
+    "egg white": { calories: 52, protein: 11, carbs: 0.7, fat: 0.2, fiber: 0 },
+    "egg": { calories: 155, protein: 13, carbs: 1.1, fat: 11, fiber: 0 },
+    "egg yalk": { calories: 322, protein: 16, carbs: 3.6, fat: 27, fiber: 0 },
+    "carrot": { calories: 41, protein: 0.9, carbs: 10, fat: 0.2, fiber: 2.8 },
+    "beans": { calories: 31, protein: 1.8, carbs: 7, fat: 0.1, fiber: 3.4 },
+    "cauliflower": { calories: 25, protein: 1.9, carbs: 5, fat: 0.3, fiber: 2 },
+    "cabbage": { calories: 25, protein: 1.3, carbs: 6, fat: 0.1, fiber: 2.5 },
+    "brinjal": { calories: 25, protein: 1, carbs: 6, fat: 0.2, fiber: 3 },
+    "beetroot": { calories: 43, protein: 1.6, carbs: 10, fat: 0.2, fiber: 2.8 },
+    "spinach": { calories: 23, protein: 2.9, carbs: 3.6, fat: 0.4, fiber: 2.2 },
+    "gooseberry": { calories: 44, protein: 1, carbs: 10, fat: 0.6, fiber: 4.3 },
+    "banana": { calories: 89, protein: 1.1, carbs: 23, fat: 0.3, fiber: 2.6 },
+    "almond": { calories: 579, protein: 21, carbs: 22, fat: 50, fiber: 12.5 },
+    "coconut oil": { calories: 862, protein: 0, carbs: 0, fat: 100, fiber: 0 },
+    "ghee": { calories: 900, protein: 0, carbs: 0, fat: 100, fiber: 0 },
+    "whey protein": { calories: 400, protein: 80, carbs: 10, fat: 5, fiber: 0 },
+    "chicken breast": { calories: 165, protein: 31, carbs: 0, fat: 3.6, fiber: 0 },
+    "chicken thigh": { calories: 209, protein: 26, carbs: 0, fat: 10.9, fiber: 0 },
+    "guava": { calories: 68, protein: 2.6, carbs: 14, fat: 1, fiber: 5.4 },
+    "pineapple": { calories: 50, protein: 0.5, carbs: 13, fat: 0.1, fiber: 1.4 }
+  };
+
+
+  let foods = [];
+  let dailyNeeds = { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
+
+  document.getElementById("bmrInput").addEventListener("input", () => {
+  const bmrVal = parseFloat(document.getElementById("bmrInput").value);
+  if (bmrVal <= 0 || isNaN(bmrVal)) {
+    alert("BMR must be a positive number.");
+    return;
+  }
+
+  // Reset goal and weights only
+  document.getElementById("goalSelect").selectedIndex = 0;
+  document.getElementById("weightGoal").value = "";
+  document.getElementById("currentWeight").value = "";
+  document.getElementById("needsSummary").innerHTML = "";
+  });
+
+  document.getElementById("goalSelect").addEventListener("change", () => {
+    // Reset weights only
+    document.getElementById("weightGoal").value = "";
+    document.getElementById("currentWeight").value = "";
+    document.getElementById("needsSummary").innerHTML = "";
+  });
+
+  function getCurrentDateString() {
+  const now = new Date();
+  const day = now.toLocaleDateString(undefined, { weekday: 'long' });
+  const date = now.toLocaleDateString();
+  return `${day}, ${date}`;
+  }
+
+  function getCurrentTimeString() {
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function calculateNeeds() {
+  const bmr = parseFloat(document.getElementById("bmrInput").value);
+  const goal = document.getElementById("goalSelect").value;
+  const weightGoal = parseFloat(document.getElementById("weightGoal").value);
+  const currentWeight = parseFloat(document.getElementById("currentWeight").value);
+
+  if (isNaN(bmr) || bmr <= 0) {
+    alert("BMR must be a positive number.");
+    return;
+  }
+
+  if (isNaN(weightGoal) || weightGoal <= 0) {
+    alert("Goal weight must be a positive number.");
+    return;
+  }
+
+  if (isNaN(currentWeight) || currentWeight <= 0) {
+    alert("Current weight must be a positive number.");
+    return;
+  }
+
+  if (goal === "bulk" && weightGoal <= currentWeight) {
+    alert("For bulking, goal weight must be greater than current weight.");
+    return;
+  }
+
+  if (goal === "cut" && weightGoal >= currentWeight) {
+    alert("For cutting, goal weight must be less than current weight.");
+    return;
+  }
+
+  const isBulking = goal === "bulk";
+  const surplusOrDeficit = isBulking ? 500 : -500;
+
+  dailyNeeds.calories = Math.round(bmr + surplusOrDeficit);
+  dailyNeeds.protein = Math.round(currentWeight * 2);
+  dailyNeeds.fat = Math.round((dailyNeeds.calories * 0.25) / 9);
+  dailyNeeds.carbs = Math.round((dailyNeeds.calories - (dailyNeeds.protein * 4 + dailyNeeds.fat * 9)) / 4);
+  dailyNeeds.fiber = 30;
+
+  const daysToGoal = Math.abs((weightGoal - currentWeight) / 0.5) * 7;
+
+  document.getElementById("needsSummary").innerHTML = `
+    <strong>Daily Needs:</strong><br/>
+    Calories: ${dailyNeeds.calories} kcal<br/>
+    Protein: ${dailyNeeds.protein}g<br/>
+    Carbs: ${dailyNeeds.carbs}g<br/>
+    Fat: ${dailyNeeds.fat}g<br/>
+    Fiber: ${dailyNeeds.fiber}g<br/>
+    Estimated time to reach goal: <strong>${Math.round(daysToGoal)} days</strong>
+  `;
+
+  updateMacroSummary();
+}
+
+  function addFood() {
+  const name = document.getElementById("foodName").value.trim().toLowerCase();
+  const weight = parseFloat(document.getElementById("foodWeight").value);
+
+  if (!name || isNaN(weight) || weight <= 0) {
+    alert("Please enter a valid food name and a weight greater than 0.");
+    return;
+  }
+
+  const foodInfo = foodDB[name];
+  if (!foodInfo) {
+    alert("Food not found in database.");
+    return;
+  }
+
+  const factor = weight / 100;
+
+  const foodEntry = {
+    name,
+    weight,
+    calories: +(foodInfo.calories * factor).toFixed(1),
+    protein: +(foodInfo.protein * factor).toFixed(1),
+    carbs: +(foodInfo.carbs * factor).toFixed(1),
+    fat: +(foodInfo.fat * factor).toFixed(1),
+    fiber: +(foodInfo.fiber * factor).toFixed(1),
+    time: new Date().toLocaleTimeString()
+  };
+
+  foods.push(foodEntry);
+  document.getElementById("status").textContent = `✅ Added: ${name} (${weight}g at ${foodEntry.time})`;
+  renderFoodTable();
+  updateMacroSummary();
+  document.getElementById("foodName").value = "";
+  document.getElementById("foodWeight").value = "";
+}
+
+  function renderFoodTable() {
+    const tbody = document.querySelector("#foodTable tbody");
+    tbody.innerHTML = "";
+
+    foods.forEach((food, index) => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${food.time}</td>
+        <td>${food.name}</td>
+        <td><input type="number" value="${food.weight}" onchange="editFood(${index}, this.value)" /></td>
+        <td>${food.calories}</td>
+        <td>${food.protein}</td>
+        <td>${food.carbs}</td>
+        <td>${food.fat}</td>
+        <td>${food.fiber}</td>
+        <td><button onclick="deleteFood(${index})">❌</button></td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  function toggleFoodList() {
+    const table = document.getElementById("foodTable");
+    table.classList.toggle("hidden");
+  }
+
+  function editFood(index, newWeight) {
+  newWeight = parseFloat(newWeight);
+  if (isNaN(newWeight) || newWeight <= 0) {
+    alert("Weight must be greater than 0.");
+    renderFoodTable(); // Reset input to previous valid value
+    return;
+  }
+
+  const food = foods[index];
+  const base = foodDB[food.name];
+  const factor = newWeight / 100;
+
+  foods[index] = {
+    name: food.name,
+    weight: newWeight,
+    calories: +(base.calories * factor).toFixed(1),
+    protein: +(base.protein * factor).toFixed(1),
+    carbs: +(base.carbs * factor).toFixed(1),
+    fat: +(base.fat * factor).toFixed(1),
+    fiber: +(base.fiber * factor).toFixed(1),
+    time: new Date().toLocaleTimeString() // Update time on edit
+  };
+
+  renderFoodTable();
+  updateMacroSummary();
+}
+
+  function deleteFood(index) {
+    foods.splice(index, 1);
+    renderFoodTable();
+    updateMacroSummary();
+  }
+
+  function updateMacroSummary() {
+    const totals = {
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+      fiber: 0
+    };
+
+    for (const food of foods) {
+      totals.calories += food.calories;
+      totals.protein += food.protein;
+      totals.carbs += food.carbs;
+      totals.fat += food.fat;
+      totals.fiber += food.fiber;
+    }
+
+    const remaining = {
+      calories: (Math.max(0, dailyNeeds.calories - totals.calories)).toFixed(1),
+      protein: (Math.max(0, dailyNeeds.protein - totals.protein)).toFixed(1),
+      carbs: (Math.max(0, dailyNeeds.carbs - totals.carbs)).toFixed(1),
+      fat: (Math.max(0, dailyNeeds.fat - totals.fat)).toFixed(1),
+      fiber: (Math.max(0, dailyNeeds.fiber - totals.fiber)).toFixed(1)
+    };
+
+    document.getElementById("macroSummary").innerHTML = `
+      <strong>Today So Far:</strong><br/>
+      Calories: ${totals.calories.toFixed(1)} / ${dailyNeeds.calories} kcal<br/>
+      Protein: ${totals.protein.toFixed(1)}g / ${dailyNeeds.protein}g<br/>
+      Carbs: ${totals.carbs.toFixed(1)}g / ${dailyNeeds.carbs}g<br/>
+      Fat: ${totals.fat.toFixed(1)}g / ${dailyNeeds.fat}g<br/>
+      Fiber: ${totals.fiber.toFixed(1)}g / ${dailyNeeds.fiber}g<br/>
+      <br/>
+      <strong>Remaining:</strong><br/>
+      Calories: ${remaining.calories} kcal<br/>
+      Protein: ${remaining.protein}g<br/>
+      Carbs: ${remaining.carbs}g<br/>
+      Fat: ${remaining.fat}g<br/>
+      Fiber: ${remaining.fiber}g
+    `;
+  }
+  function populateFoodOptions() {
+  const datalist = document.getElementById("foodOptions");
+  datalist.innerHTML = "";
+
+  Object.keys(foodDB).forEach(food => {
+    const option = document.createElement("option");
+    option.value = food;
+    datalist.appendChild(option);
+  });
+}
+
+populateFoodOptions(); // 🔁 Initialize food suggestions
+</script>
+</body>
+</html>
