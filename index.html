@@ -213,15 +213,22 @@
       updateMacroSummary();
     }
 
-    function loadFoodFromFirestore(userId) {
+    function loadFoodFromFirestore() {
+      const user = firebase.auth().currentUser;
+      
+      if (!user) {
+        console.error("❌ No user signed in.");
+        return;
+      }
+
       db.collection("foodLogs")
-        .where("userId", "==", userId)
+        .where("userId", "==", user.uid)
         .orderBy("time", "desc")
         .get()
         .then((snapshot) => {
           foods = [];
           snapshot.forEach((doc) => {
-            foods.push({ ...doc.data(), id: doc.id });
+            foods.push(doc.data());
           });
           renderFoodTable();
           updateMacroSummary();
@@ -244,9 +251,14 @@
       });
 
     function addFood() {
+      const user = firebase.auth().currentUser;
+      if (!user) {
+        alert("User not signed in.");
+        return;
+      }
+
       const name = document.getElementById("foodName").value.trim().toLowerCase();
       const weight = parseFloat(document.getElementById("foodWeight").value);
-
       if (!name || isNaN(weight) || weight <= 0) {
         alert("Please enter a valid food name and weight.");
         return;
@@ -258,15 +270,9 @@
         return;
       }
 
-      const user = firebase.auth().currentUser;
-      if (!user) {
-        alert("You must be logged in to add food.");
-        return;
-      }
-
       const factor = weight / 100;
       const foodEntry = {
-        userId: user.uid, // ✅ link to user
+        userId: user.uid, // ✅ attach user ID
         name,
         weight,
         calories: +(foodInfo.calories * factor).toFixed(1),
