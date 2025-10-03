@@ -162,18 +162,21 @@
     }
 
     function loadFoodFromFirestore() {
-      firebase.auth().onAuthStateChanged(function(user) {
-      if (user) {
-        console.log("✅ User signed in:", user.uid);
-        loadFoodFromFirestore(); // Now it's safe to access Firestore
-      } else {
-        // Try anonymous sign-in
-        firebase.auth().signInAnonymously()
-          .catch((error) => {
-            console.error("Auth error:", error);
-          });
-      }
-    });
+      firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+          console.log("✅ User signed in:", user.uid);
+          loadFoodFromFirestore(); // Your existing load function
+        } else {
+          firebase.auth().signInAnonymously()
+            .then((cred) => {
+              console.log("✅ Signed in anonymously:", cred.user.uid);
+              loadFoodFromFirestore(); // load after successful sign-in
+            })
+            .catch((error) => {
+              console.error("❌ Auth error:", error);
+            });
+        }
+      });
     }
 
     function addFood() {
