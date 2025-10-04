@@ -44,49 +44,45 @@
   </div>
 
   <!-- User Details & BMR Calculation -->
+   <div class="daily-needs">
+  <h3>User Information</h3>
+  <label>Weight (kg): <input type="number" id="userWeight" /></label>
+  <label>Height (cm): <input type="number" id="userHeight" /></label>
+  <label>Age: <input type="number" id="userAge" /></label>
+  <label>Gender:
+    <select id="userGender">
+      <option value="male">Male</option>
+      <option value="female">Female</option>
+    </select>
+  </label>
+  <label>Activity Level:
+    <select id="userActivity">
+      <option value="1.2">Sedentary</option>
+      <option value="1.375">Lightly Active</option>
+      <option value="1.55">Moderately Active</option>
+      <option value="1.725">Very Active</option>
+      <option value="1.9">Extremely Active</option>
+    </select>
+  </label>
+  <label>BMR: <input type="number" id="bmrDisplay" readonly /></label>
+  <button onclick="calculateBMR()">Calculate BMR</button>
+  <button id="editInfoBtn" class="hidden" onclick="toggleEdit(true)">Edit Info</button>
+</div>
+
   <div class="daily-needs">
-    <h3>Enter Your Details</h3>
-    <label>Weight (kg): <input type="number" id="userWeight" min="0" /></label>
-    <label>Height (cm): <input type="number" id="userHeight" min="0" /></label>
-    <label>Age: <input type="number" id="userAge" min="0" /></label>
-    <label>Gender:
-      <select id="userGender">
-        <option value="male">Male</option>
-        <option value="female">Female</option>
-      </select>
-    </label>
-    <label>Activity Level:
-      <select id="userActivity">
-        <option value="1.2">Sedentary</option>
-        <option value="1.375">Light</option>
-        <option value="1.55">Moderate</option>
-        <option value="1.725">Active</option>
-        <option value="1.9">Very Active</option>
-      </select>
-    </label>
-    <label>BMR (kcal): <input type="number" id="bmrDisplay" readonly /></label>
-    <button onclick="calculateBMR()">Auto-Calculate Goals</button>
-    <button onclick="toggleEdit(true)" id="editInfoBtn" class="hidden">Edit Info</button>
-  </div>
-
-    <!-- Advanced Daily Goals (Added inputs for second calculateNeeds) -->
-    <div class="daily-needs">
-      <h3>Advanced Nutrition Goals Setup</h3>
-      <label>BMR (kcal): <input type="number" id="bmrInput" min="0" /></label>
-      <label>Goal:
-        <select id="goalSelect">
-          <option value="maintain">Maintain Weight</option>
-          <option value="bulk">Bulk (Surplus)</option>
-          <option value="cut">Cut (Deficit)</option>
-        </select>
-      </label>
-      <label>Current Weight (kg): <input type="number" id="currentWeight" min="0" /></label>
-      <label>Target Weight (kg): <input type="number" id="weightGoal" min="0" /></label>
-      <button onclick="calculateNeedsAdvanced()">Set Advanced Goals</button>
-      <div id="needsSummary" style="margin-top: 10px;"></div>
-    </div>
-
-  
+  <h3>Daily Nutrition Goals</h3>
+  <label>Goal:
+    <select id="goalSelect">
+      <option value="maintain">Maintain Weight</option>
+      <option value="bulk">Bulk (Surplus)</option>
+      <option value="cut">Cut (Deficit)</option>
+    </select>
+  </label>
+  <label>Current Weight (kg): <input type="number" id="currentWeight" readonly /></label>
+  <label>Target Weight (kg): <input type="number" id="weightGoal" min="0" /></label>
+  <button onclick="calculateNeedsAdvanced()">Set Advanced Goals</button>
+  <div id="needsSummary" style="margin-top: 10px;"></div>
+</div>
 
   <!-- Food Input Section -->
   <div class="main" style="display:none;">
@@ -244,11 +240,11 @@
       }
 
       let bmr;
-      if (gender === "male") {
-        bmr = 10 * weight + 6.25 * height - 5 * age + 5;
-      } else {
-        bmr = 10 * weight + 6.25 * height - 5 * age - 161;
-      }
+        if (gender === "male") {
+          bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+        } else {
+          bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+        }
 
       const tdee = bmr * activity;
       const protein = weight * 2;
@@ -277,14 +273,26 @@
 
     // Advanced needs calculation - renamed from duplicate
     function calculateNeedsAdvanced() {
-      const bmrInput = parseFloat(document.getElementById("bmrInput").value);
+      const weight = parseFloat(document.getElementById("userWeight").value);
+      const height = parseFloat(document.getElementById("userHeight").value);
+      const age = parseFloat(document.getElementById("userAge").value);
+      const gender = document.getElementById("userGender").value;
+      const activity = parseFloat(document.getElementById("userActivity").value);
       const goal = document.getElementById("goalSelect").value;
       const currentWeight = parseFloat(document.getElementById("currentWeight").value);
       const weightGoal = parseFloat(document.getElementById("weightGoal").value);
 
-      if ([bmrInput, currentWeight, weightGoal].some(v => isNaN(v) || v <= 0)) {
-        alert("Please enter positive numbers for BMR and weights.");
+      if ([weight, height, age, activity, currentWeight, weightGoal].some(v => isNaN(v) || v <= 0)) {
+        alert("Please enter valid numbers for all fields.");
         return;
+      }
+
+      // Recalculate BMR
+      let bmr;
+      if (gender === "male") {
+        bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+      } else {
+        bmr = 10 * weight + 6.25 * height - 5 * age - 161;
       }
 
       let goalMultiplier;
@@ -294,8 +302,8 @@
         default: goalMultiplier = 1; break;
       }
 
-      const dailyCalories = bmrInput * goalMultiplier;
-      const protein = weightGoal * 2;  // g protein per kg target weight
+      const dailyCalories = bmr * activity * goalMultiplier;
+      const protein = weightGoal * 2;
       const fat = weightGoal * 1;
       const carbs = (dailyCalories - protein * 4 - fat * 9) / 4;
       const fiber = 30;
@@ -308,7 +316,7 @@
         fiber: fiber
       };
 
-      // Show summary in UI
+      // Show summary
       const summary = `
         <strong>Daily Calories:</strong> ${dailyNeeds.calories} kcal<br/>
         <strong>Protein:</strong> ${dailyNeeds.protein} g<br/>
@@ -633,6 +641,7 @@
 
   // Show "Edit Info" button
   document.getElementById("editInfoBtn").classList.remove("hidden");
+  document.getElementById("currentWeight").value = weight;
 }
 
   </script>
