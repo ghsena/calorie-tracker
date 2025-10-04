@@ -64,50 +64,29 @@
         <option value="1.9">Very Active</option>
       </select>
     </label>
+    <label>BMR (kcal): <input type="number" id="bmrDisplay" readonly /></label>
     <button onclick="calculateBMR()">Auto-Calculate Goals</button>
+    <button onclick="toggleEdit(true)" id="editInfoBtn" class="hidden">Edit Info</button>
   </div>
 
-  <div class="daily-needs">
-  <h3>Enter Your Details</h3>
-  <label>Weight (kg): <input type="number" id="userWeight" min="0" /></label>
-  <label>Height (cm): <input type="number" id="userHeight" min="0" /></label>
-  <label>Age: <input type="number" id="userAge" min="0" /></label>
-  <label>Gender:
-    <select id="userGender">
-      <option value="male">Male</option>
-      <option value="female">Female</option>
-    </select>
-  </label>
-  <label>Activity Level:
-    <select id="userActivity">
-      <option value="1.2">Sedentary</option>
-      <option value="1.375">Light</option>
-      <option value="1.55">Moderate</option>
-      <option value="1.725">Active</option>
-      <option value="1.9">Very Active</option>
-    </select>
-  </label>
-  <label>BMR (kcal): <input type="number" id="bmrDisplay" readonly /></label>
-  <button onclick="calculateBMR()">Auto-Calculate Goals</button>
-  <button onclick="toggleEdit(true)" id="editInfoBtn" class="hidden">Edit Info</button>
-</div>
+    <!-- Advanced Daily Goals (Added inputs for second calculateNeeds) -->
+    <div class="daily-needs">
+      <h3>Advanced Nutrition Goals Setup</h3>
+      <label>BMR (kcal): <input type="number" id="bmrInput" min="0" /></label>
+      <label>Goal:
+        <select id="goalSelect">
+          <option value="maintain">Maintain Weight</option>
+          <option value="bulk">Bulk (Surplus)</option>
+          <option value="cut">Cut (Deficit)</option>
+        </select>
+      </label>
+      <label>Current Weight (kg): <input type="number" id="currentWeight" min="0" /></label>
+      <label>Target Weight (kg): <input type="number" id="weightGoal" min="0" /></label>
+      <button onclick="calculateNeedsAdvanced()">Set Advanced Goals</button>
+      <div id="needsSummary" style="margin-top: 10px;"></div>
+    </div>
 
-  <!-- Advanced Daily Goals (Added inputs for second calculateNeeds) -->
-  <div class="daily-needs">
-    <h3>Advanced Nutrition Goals Setup</h3>
-    <label>BMR (kcal): <input type="number" id="bmrInput" min="0" /></label>
-    <label>Goal:
-      <select id="goalSelect">
-        <option value="maintain">Maintain Weight</option>
-        <option value="bulk">Bulk (Surplus)</option>
-        <option value="cut">Cut (Deficit)</option>
-      </select>
-    </label>
-    <label>Current Weight (kg): <input type="number" id="currentWeight" min="0" /></label>
-    <label>Target Weight (kg): <input type="number" id="weightGoal" min="0" /></label>
-    <button onclick="calculateNeedsAdvanced()">Set Advanced Goals</button>
-    <div id="needsSummary" style="margin-top: 10px;"></div>
-  </div>
+  
 
   <!-- Food Input Section -->
   <div class="main" style="display:none;">
