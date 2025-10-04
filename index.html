@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8" />
   <title>Calorie & Macro Tracker (Auto DB)</title>
@@ -7,28 +8,34 @@
     .hidden {
       display: none;
     }
+
     .main input,
     .main button {
       margin: 5px;
     }
+
     .daily-needs {
       margin: 20px 0;
       padding: 10px;
       border: 1px solid #ccc;
       background: #f9f9f9;
     }
+
     .daily-needs label {
       display: block;
       margin-bottom: 6px;
     }
+
     .sidebar {
       margin-top: 20px;
     }
+
     #foodTable input[type="number"] {
       width: 60px;
     }
   </style>
 </head>
+
 <body>
   <div id="authSection">
     <div id="userInfo" class="hidden">
@@ -44,45 +51,45 @@
   </div>
 
   <!-- User Details & BMR Calculation -->
-   <div class="daily-needs">
-  <h3>User Information</h3>
-  <label>Weight (kg): <input type="number" id="userWeight" /></label>
-  <label>Height (cm): <input type="number" id="userHeight" /></label>
-  <label>Age: <input type="number" id="userAge" /></label>
-  <label>Gender:
-    <select id="userGender">
-      <option value="male">Male</option>
-      <option value="female">Female</option>
-    </select>
-  </label>
-  <label>Activity Level:
-    <select id="userActivity">
-      <option value="1.2">Sedentary</option>
-      <option value="1.375">Lightly Active</option>
-      <option value="1.55">Moderately Active</option>
-      <option value="1.725">Very Active</option>
-      <option value="1.9">Extremely Active</option>
-    </select>
-  </label>
-  <label>BMR: <input type="number" id="bmrDisplay" readonly /></label>
-  <button onclick="calculateBMR()">Calculate BMR</button>
-  <button id="editInfoBtn" class="hidden" onclick="toggleEdit(true)">Edit Info</button>
-</div>
+  <div class="daily-needs">
+    <h3>User Information</h3>
+    <label>Weight (kg): <input type="number" id="userWeight" /></label>
+    <label>Height (cm): <input type="number" id="userHeight" /></label>
+    <label>Age: <input type="number" id="userAge" /></label>
+    <label>Gender:
+      <select id="userGender">
+        <option value="male">Male</option>
+        <option value="female">Female</option>
+      </select>
+    </label>
+    <label>Activity Level:
+      <select id="userActivity">
+        <option value="1.2">Sedentary</option>
+        <option value="1.375">Lightly Active</option>
+        <option value="1.55">Moderately Active</option>
+        <option value="1.725">Very Active</option>
+        <option value="1.9">Extremely Active</option>
+      </select>
+    </label>
+    <label>BMR: <input type="number" id="bmrDisplay" readonly /></label>
+    <button onclick="calculateBMR()">Calculate BMR</button>
+    <button id="editInfoBtn" class="hidden" onclick="toggleEdit(true)">Edit Info</button>
+  </div>
 
   <div class="daily-needs">
-  <h3>Daily Nutrition Goals</h3>
-  <label>Goal:
-    <select id="goalSelect">
-      <option value="maintain">Maintain Weight</option>
-      <option value="bulk">Bulk (Surplus)</option>
-      <option value="cut">Cut (Deficit)</option>
-    </select>
-  </label>
-  <label>Current Weight (kg): <input type="number" id="currentWeight" readonly /></label>
-  <label>Target Weight (kg): <input type="number" id="weightGoal" min="0" /></label>
-  <button onclick="calculateNeedsAdvanced()">Set Advanced Goals</button>
-  <div id="needsSummary" style="margin-top: 10px;"></div>
-</div>
+    <h3>Daily Nutrition Goals</h3>
+    <label>Goal:
+      <select id="goalSelect">
+        <option value="maintain">Maintain Weight</option>
+        <option value="bulk">Bulk (Surplus)</option>
+        <option value="cut">Cut (Deficit)</option>
+      </select>
+    </label>
+    <label>Current Weight (kg): <input type="number" id="currentWeight" readonly /></label>
+    <label>Target Weight (kg): <input type="number" id="weightGoal" min="0" /></label>
+    <button onclick="calculateNeedsAdvanced()">Set Advanced Goals</button>
+    <div id="needsSummary" style="margin-top: 10px;"></div>
+  </div>
 
   <!-- Food Input Section -->
   <div class="main" style="display:none;">
@@ -99,8 +106,15 @@
     <table id="foodTable" class="hidden" border="1" cellpadding="5" cellspacing="0">
       <thead>
         <tr>
-          <th>Time</th><th>Food</th><th>Weight (g)</th><th>Calories</th>
-          <th>Protein</th><th>Carbs</th><th>Fat</th><th>Fiber</th><th>Actions</th>
+          <th>Time</th>
+          <th>Food</th>
+          <th>Weight (g)</th>
+          <th>Calories</th>
+          <th>Protein</th>
+          <th>Carbs</th>
+          <th>Fat</th>
+          <th>Fiber</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -112,7 +126,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-  
+
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyCDVZOggFk6Y4hCSU7prDjEnONqRLD2jcc",
@@ -178,6 +192,11 @@
         document.getElementById("userInfo").classList.remove("hidden");
         document.getElementById("authForm").classList.add("hidden");
         document.getElementById("userEmail").textContent = user.email || "Anonymous";
+        const storedWeight = localStorage.getItem("userWeight");
+        if (storedWeight) {
+          document.getElementById("userWeight").value = storedWeight;
+          document.getElementById("currentWeight").value = storedWeight;
+        }
 
         loadFoodFromFirestore();
 
@@ -233,6 +252,7 @@
       const age = parseFloat(document.getElementById("userAge").value);
       const gender = document.getElementById("userGender").value;
       const activity = parseFloat(document.getElementById("userActivity").value);
+      localStorage.setItem("userWeight", weight);
 
       if ([weight, height, age].some(isNaN)) {
         alert("Please fill in all fields.");
@@ -240,11 +260,11 @@
       }
 
       let bmr;
-        if (gender === "male") {
-          bmr = 10 * weight + 6.25 * height - 5 * age + 5;
-        } else {
-          bmr = 10 * weight + 6.25 * height - 5 * age - 161;
-        }
+      if (gender === "male") {
+        bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+      } else {
+        bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+      }
 
       const tdee = bmr * activity;
       const protein = weight * 2;
@@ -590,60 +610,61 @@
     }
 
     function calculateBMR() {
-  const weight = parseFloat(document.getElementById("userWeight").value);
-  const height = parseFloat(document.getElementById("userHeight").value);
-  const age = parseFloat(document.getElementById("userAge").value);
-  const gender = document.getElementById("userGender").value;
-  const activity = parseFloat(document.getElementById("userActivity").value);
+      const weight = parseFloat(document.getElementById("userWeight").value);
+      const height = parseFloat(document.getElementById("userHeight").value);
+      const age = parseFloat(document.getElementById("userAge").value);
+      const gender = document.getElementById("userGender").value;
+      const activity = parseFloat(document.getElementById("userActivity").value);
 
-  if ([weight, height, age].some(isNaN)) {
-    alert("Please fill in all fields.");
-    return;
-  }
+      if ([weight, height, age].some(isNaN)) {
+        alert("Please fill in all fields.");
+        return;
+      }
 
-  let bmr;
-  if (gender === "male") {
-    bmr = 10 * weight + 6.25 * height - 5 * age + 5;
-  } else {
-    bmr = 10 * weight + 6.25 * height - 5 * age - 161;
-  }
+      let bmr;
+      if (gender === "male") {
+        bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+      } else {
+        bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+      }
 
-  const tdee = bmr * activity;
-  const protein = weight * 2;
-  const fat = weight * 1;
-  const carbs = (tdee - protein * 4 - fat * 9) / 4;
-  const fiber = 30;
+      const tdee = bmr * activity;
+      const protein = weight * 2;
+      const fat = weight * 1;
+      const carbs = (tdee - protein * 4 - fat * 9) / 4;
+      const fiber = 30;
 
-  dailyNeeds = {
-    calories: Math.round(tdee),
-    protein: Math.round(protein),
-    carbs: Math.round(carbs),
-    fat: Math.round(fat),
-    fiber: fiber
-  };
+      dailyNeeds = {
+        calories: Math.round(tdee),
+        protein: Math.round(protein),
+        carbs: Math.round(carbs),
+        fat: Math.round(fat),
+        fiber: fiber
+      };
 
-  // Set fields to read-only
-  toggleEdit(false);
+      // Set fields to read-only
+      toggleEdit(false);
 
-  // Fill calculated BMR into display field
-  document.getElementById("bmrDisplay").value = Math.round(bmr);
+      // Fill calculated BMR into display field
+      document.getElementById("bmrDisplay").value = Math.round(bmr);
 
-  // Fill inputs for manual goals too:
-  document.getElementById("dailyCalories").value = dailyNeeds.calories;
-  document.getElementById("dailyProtein").value = dailyNeeds.protein;
-  document.getElementById("dailyCarbs").value = dailyNeeds.carbs;
-  document.getElementById("dailyFat").value = dailyNeeds.fat;
-  document.getElementById("dailyFiber").value = dailyNeeds.fiber;
+      // Fill inputs for manual goals too:
+      document.getElementById("dailyCalories").value = dailyNeeds.calories;
+      document.getElementById("dailyProtein").value = dailyNeeds.protein;
+      document.getElementById("dailyCarbs").value = dailyNeeds.carbs;
+      document.getElementById("dailyFat").value = dailyNeeds.fat;
+      document.getElementById("dailyFiber").value = dailyNeeds.fiber;
 
-  alert("Goals auto-calculated and set!");
-  updateMacroSummary();
-  updateGoalSummary();
+      alert("Goals auto-calculated and set!");
+      updateMacroSummary();
+      updateGoalSummary();
 
-  // Show "Edit Info" button
-  document.getElementById("editInfoBtn").classList.remove("hidden");
-  document.getElementById("currentWeight").value = weight;
-}
+      // Show "Edit Info" button
+      document.getElementById("editInfoBtn").classList.remove("hidden");
+      document.getElementById("currentWeight").value = weight;
+    }
 
   </script>
 </body>
+
 </html>
