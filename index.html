@@ -37,6 +37,25 @@
 </head>
 
 <body>
+  <div id="signedOutSection">
+    <h2>Welcome to the Nutrition Tracker</h2>
+    <p>Please sign in to track your daily nutrition goals and food intake.</p>
+    <button id="signInBtn">Sign In</button>
+    <!-- your sign-in logic can be connected here -->
+  </div>
+
+  <div id="signedInSection" style="display:none;">
+    <h2>User Information</h2>
+    <label>Weight (kg): <input id="userWeight" type="number" disabled></label><br />
+    <label>Height (cm): <input id="userHeight" type="number" disabled></label><br />
+    <label>Age: <input id="userAge" type="number" disabled></label><br />
+    <label>Gender: <input id="userGender" type="text" disabled></label><br />
+    <label>Activity Level: <input id="userActivity" type="text" disabled></label><br />
+    <label>BMR: <input id="bmrDisplay" type="number" disabled></label><br />
+
+    <h3>Daily Nutrition Goals</h3>
+    <p id="dailyGoalsSummary"></p>
+  </div>
   <div id="authSection">
     <div id="userInfo" class="hidden">
       Logged in as: <span id="userEmail"></span>
@@ -183,37 +202,108 @@
     }
 
     // On auth state changed, show/hide UI and load foods
-    auth.onAuthStateChanged((user) => {
+    auth.onAuthStateChanged(user => {
       if (user) {
-        console.log("✅ User is signed in:", user.uid);
+        // Hide sign-out section, show signed-in user info section
+        document.getElementById("signedOutSection").style.display = "none";
+        document.getElementById("signedInSection").style.display = "block";
+
+        // Show the app main sections (food input, sidebar, etc)
         document.querySelector(".main").style.display = "block";
         document.querySelector(".sidebar").style.display = "block";
+
+        // Update user info section (email, sign out)
         document.getElementById("userInfo").classList.remove("hidden");
         document.getElementById("authForm").classList.add("hidden");
         document.getElementById("userEmail").textContent = user.email || "Anonymous";
-        const storedWeight = localStorage.getItem("userWeight");
-        if (storedWeight) {
-          document.getElementById("userWeight").value = storedWeight;
-          document.getElementById("currentWeight").value = storedWeight;
-        }
 
+        // Load user profile data from Firestore
+        db.collection("users").doc(user.uid).get()
+          .then(doc => {
+            if (doc.exists) {
+              const data = doc.data();
+              document.getElementById("userWeight").value = data.weight || "";
+              document.getElementById("userHeight").value = data.height || "";
+              document.getElementById("userAge").value = data.age || "";
+              document.getElementById("userGender").value = data.gender || "";
+              document.getElementById("userActivity").value = data.activityLevel || "";
+
+              const bmr = calculateBMRFromData(data);
+              document.getElementById("bmrDisplay").value = Math.round(bmr);
+
+              const dailyNeeds = calculateDailyNeeds(data);
+              document.getElementById("dailyGoalsSummary").innerHTML = `
+            Calories: ${dailyNeeds.calories} kcal<br/>
+            Protein: ${dailyNeeds.protein} g<br/>
+            Carbs: ${dailyNeeds.carbs} g<br/>
+            Fat: ${dailyNeeds.fat} g<br/>
+            Fiber: ${dailyNeeds.fiber} g
+          `;
+            }
+          })
+          .catch(err => console.error("Error fetching user data:", err));
+
+        // Load food data and other UI setup as needed
         loadFoodFromFirestore();
-
-        // Set some default daily needs for new users
-        dailyNeeds = { calories: 2000, protein: 150, carbs: 250, fat: 70, fiber: 30 };
-        updateMacroSummary();
       } else {
-        console.log("⚠️ No user signed in.");
+        // Show signed-out UI sections, hide user info and app features
+        document.getElementById("signedOutSection").style.display = "block";
+        document.getElementById("signedInSection").style.display = "none";
         document.getElementById("userInfo").classList.add("hidden");
         document.getElementById("authForm").classList.remove("hidden");
         document.querySelector(".main").style.display = "none";
         document.querySelector(".sidebar").style.display = "none";
+
+        // Clear user-specific data/UI
         foods = [];
         renderFoodTable();
         updateMacroSummary();
       }
     });
 
+    function calculateBMRFromData(data) {
+      const weight = data.weight;
+      const height = data.height;
+      const age = data.age;
+      const gender = data.gender;
+
+      if (!weight || !height || !age || !gender) return 0;
+
+      if (gender.toLowerCase() === "male") {
+        return 10 * weight + 6.25 * height - 5 * age + 5;
+      } else {
+        return 10 * weight + 6.25 * height - 5 * age - 161;
+      }
+    }
+
+    function calculateDailyNeeds(data) {
+      const activityMultiplier = {
+        sedentary: 1.2,
+        lightlyactive: 1.375,
+        moderate: 1.55,
+        veryactive: 1.725,
+        extremelyactive: 1.9
+      };
+
+      // Normalize activity level string keys for lookup
+      const activityKey = (data.activityLevel || "").toLowerCase().replace(/\s/g, "");
+
+      const bmr = calculateBMRFromData(data);
+      const activity = activityMultiplier[activityKey] || 1.2;
+      const tdee = bmr * activity;
+      const protein = data.weight * 2;
+      const fat = data.weight * 1;
+      const carbs = (tdee - protein * 4 - fat * 9) / 4;
+      const fiber = 30;
+
+      return {
+        calories: Math.round(tdee),
+        protein: Math.round(protein),
+        carbs: Math.round(carbs),
+        fat: Math.round(fat),
+        fiber: fiber
+      };
+    }
     // Basic daily needs setter from user input
     function calculateNeeds() {
       const c = parseFloat(document.getElementById("dailyCalories").value);
