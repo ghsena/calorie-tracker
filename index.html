@@ -68,23 +68,28 @@
   </div>
 
   <div class="daily-needs">
-  <h3>Set Daily Nutritional Goals</h3>
-  <label>Calories: <input type="number" id="dailyCalories" min="0" /></label>
-  <label>Protein (g): <input type="number" id="dailyProtein" min="0" /></label>
-  <label>Carbs (g): <input type="number" id="dailyCarbs" min="0" /></label>
-  <label>Fat (g): <input type="number" id="dailyFat" min="0" /></label>
-  <label>Fiber (g): <input type="number" id="dailyFiber" min="0" /></label>
-  <button onclick="calculateNeeds()">Set Goals</button>
-
-  <!-- Read-only summary of goals -->
-  <div id="goalSummary" style="margin-top: 10px; padding: 10px; background: #eef; border: 1px solid #99c;">
-    <strong>Current Nutritional Goals:</strong>
-    <div>Calories: <span id="goalCalories">0</span> kcal</div>
-    <div>Protein: <span id="goalProtein">0</span> g</div>
-    <div>Carbs: <span id="goalCarbs">0</span> g</div>
-    <div>Fat: <span id="goalFat">0</span> g</div>
-    <div>Fiber: <span id="goalFiber">0</span> g</div>
-  </div>
+  <h3>Enter Your Details</h3>
+  <label>Weight (kg): <input type="number" id="userWeight" min="0" /></label>
+  <label>Height (cm): <input type="number" id="userHeight" min="0" /></label>
+  <label>Age: <input type="number" id="userAge" min="0" /></label>
+  <label>Gender:
+    <select id="userGender">
+      <option value="male">Male</option>
+      <option value="female">Female</option>
+    </select>
+  </label>
+  <label>Activity Level:
+    <select id="userActivity">
+      <option value="1.2">Sedentary</option>
+      <option value="1.375">Light</option>
+      <option value="1.55">Moderate</option>
+      <option value="1.725">Active</option>
+      <option value="1.9">Very Active</option>
+    </select>
+  </label>
+  <label>BMR (kcal): <input type="number" id="bmrDisplay" readonly /></label>
+  <button onclick="calculateBMR()">Auto-Calculate Goals</button>
+  <button onclick="toggleEdit(true)" id="editInfoBtn" class="hidden">Edit Info</button>
 </div>
 
   <!-- Advanced Daily Goals (Added inputs for second calculateNeeds) -->
@@ -582,6 +587,75 @@
         Fiber: ${summary.fiber.toFixed(1)} / ${dailyNeeds.fiber} g<br/>
       `;
     }
+
+    function toggleEdit(enable) {
+      const fields = [
+        "userWeight", "userHeight", "userAge", "userGender", "userActivity"
+      ];
+      fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el.tagName === "INPUT" || el.tagName === "SELECT") {
+          el.disabled = !enable;
+        }
+      });
+
+      document.getElementById("editInfoBtn").classList.toggle("hidden", enable);
+    }
+
+    function calculateBMR() {
+  const weight = parseFloat(document.getElementById("userWeight").value);
+  const height = parseFloat(document.getElementById("userHeight").value);
+  const age = parseFloat(document.getElementById("userAge").value);
+  const gender = document.getElementById("userGender").value;
+  const activity = parseFloat(document.getElementById("userActivity").value);
+
+  if ([weight, height, age].some(isNaN)) {
+    alert("Please fill in all fields.");
+    return;
+  }
+
+  let bmr;
+  if (gender === "male") {
+    bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+  } else {
+    bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+  }
+
+  const tdee = bmr * activity;
+  const protein = weight * 2;
+  const fat = weight * 1;
+  const carbs = (tdee - protein * 4 - fat * 9) / 4;
+  const fiber = 30;
+
+  dailyNeeds = {
+    calories: Math.round(tdee),
+    protein: Math.round(protein),
+    carbs: Math.round(carbs),
+    fat: Math.round(fat),
+    fiber: fiber
+  };
+
+  // Set fields to read-only
+  toggleEdit(false);
+
+  // Fill calculated BMR into display field
+  document.getElementById("bmrDisplay").value = Math.round(bmr);
+
+  // Fill inputs for manual goals too:
+  document.getElementById("dailyCalories").value = dailyNeeds.calories;
+  document.getElementById("dailyProtein").value = dailyNeeds.protein;
+  document.getElementById("dailyCarbs").value = dailyNeeds.carbs;
+  document.getElementById("dailyFat").value = dailyNeeds.fat;
+  document.getElementById("dailyFiber").value = dailyNeeds.fiber;
+
+  alert("Goals auto-calculated and set!");
+  updateMacroSummary();
+  updateGoalSummary();
+
+  // Show "Edit Info" button
+  document.getElementById("editInfoBtn").classList.remove("hidden");
+}
+
   </script>
 </body>
 </html>
