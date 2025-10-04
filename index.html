@@ -72,12 +72,11 @@
       </select>
     </label>
     <label>BMR: <input type="number" id="bmrDisplay" readonly /></label>
-    <button onclick="calculateBMR()">Calculate BMR</button>
-    <button id="editInfoBtn" class="hidden" onclick="toggleEdit(true)">Edit Info</button>
   </div>
 
   <div class="daily-needs">
     <h3>Daily Nutrition Goals</h3>
+    <label>BMR: <input type="number" id="dailyBMRDisplay" readonly /></label> <!-- NEW -->
     <label>Goal:
       <select id="goalSelect">
         <option value="maintain">Maintain Weight</option>
@@ -671,6 +670,82 @@
       }
     });
 
+    function updateBMRAndNeeds() {
+      // Call your existing calculateBMR() function or merge logic here
+      calculateBMR();
+    }
+
+    // Add event listeners to all inputs
+    const inputs = ["userWeight", "userHeight", "userAge", "userGender", "userActivity"];
+    inputs.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener("input", updateBMRAndNeeds);
+      }
+    });
+
+    // Function to calculate BMR (extracted from your existing calculateBMR)
+    function getBMR() {
+      const weight = parseFloat(document.getElementById("userWeight").value);
+      const height = parseFloat(document.getElementById("userHeight").value);
+      const age = parseFloat(document.getElementById("userAge").value);
+      const gender = document.getElementById("userGender").value;
+      const activity = parseFloat(document.getElementById("userActivity").value);
+
+      if ([weight, height, age, activity].some(isNaN)) {
+        return null; // incomplete data
+      }
+
+      let bmr;
+      if (gender === "male") {
+        bmr = 10 * weight + 6.25 * height - 5 * age + 5;
+      } else {
+        bmr = 10 * weight + 6.25 * height - 5 * age - 161;
+      }
+
+      return { bmr, activity };
+    }
+
+    // Function to update BMR display and dailyNeeds accordingly
+    function updateBMRAndNeeds() {
+      const result = getBMR();
+      if (!result) {
+        document.getElementById("bmrDisplay").value = "";
+        document.getElementById("dailyBMRDisplay").value = "";
+        return;
+      }
+
+      const { bmr, activity } = result;
+      const tdee = bmr * activity;
+      const weight = parseFloat(document.getElementById("userWeight").value);
+
+      const protein = weight * 2;
+      const fat = weight * 1;
+      const carbs = (tdee - protein * 4 - fat * 9) / 4;
+      const fiber = 30;
+
+      dailyNeeds = {
+        calories: Math.round(tdee),
+        protein: Math.round(protein),
+        carbs: Math.round(carbs),
+        fat: Math.round(fat),
+        fiber: fiber
+      };
+
+      // Update BMR inputs
+      document.getElementById("bmrDisplay").value = Math.round(bmr);
+      document.getElementById("dailyBMRDisplay").value = Math.round(bmr);
+
+      // Update daily nutrition inputs if present (optional, based on your full code)
+      // If you want to update manual inputs here, uncomment these:
+      // document.getElementById("dailyCalories").value = dailyNeeds.calories;
+      // document.getElementById("dailyProtein").value = dailyNeeds.protein;
+      // document.getElementById("dailyCarbs").value = dailyNeeds.carbs;
+      // document.getElementById("dailyFat").value = dailyNeeds.fat;
+      // document.getElementById("dailyFiber").value = dailyNeeds.fiber;
+
+      updateMacroSummary();
+    }
   </script>
 </body>
 
